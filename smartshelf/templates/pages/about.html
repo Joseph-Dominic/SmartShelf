@@ -1,41 +1,45 @@
 {% extends "base.html" %}
 {% load static i18n %}
 
-{% block title %}SmartShelf - About Us{% endblock title %}
+{% block title %}About - SmartShelf{% endblock title %}
 
 {% block content %}
-  <header class="py-5">
+  <header class="py-5 bg-light border-bottom">
     <div class="container px-5">
       <div class="row justify-content-center">
-        <div class="col-lg-8 col-xxl-6">
-          <div class="text-center my-5">
-            <h1 class="fw-bolder mb-3">Our mission is to simplify digital operations.</h1>
-            <p class="lead fw-normal text-muted mb-4">
-              SmartShelf provides modular architecture, clean data interfaces, and rapid onboarding for modern teams.
-            </p>
-            <a class="btn btn-primary btn-lg" href="#team">Meet Our Team</a>
-          </div>
+        <div class="col-lg-8 col-xxl-7 text-center my-4">
+          <h1 class="fw-bolder mb-3">Empowering Readers & Librarians</h1>
+          <p class="lead fw-normal text-muted mb-4">
+            SmartShelf is an intelligent library management platform designed to replace manual paperwork with seamless digital circulation, automated notifications, and AI-driven recommendations.
+          </p>
+          <a class="btn btn-primary btn-lg" href="{% url 'library:book_list' %}">Explore the Collection</a>
         </div>
       </div>
     </div>
   </header>
 
-  <section class="py-5 bg-light" id="team">
+  <section class="py-5">
     <div class="container px-5 my-5">
-      <div class="text-center">
-        <h2 class="fw-bolder">Our Team</h2>
-        <p class="lead fw-normal text-muted mb-5">Dedicated to building modern solutions</p>
-      </div>
-      <div class="row gx-5 row-cols-1 row-cols-sm-2 row-cols-xl-4 justify-content-center">
-        <div class="col mb-5 mb-5 mb-xl-0 text-center">
-          <img class="img-fluid rounded-circle mb-4 px-4" src="https://dummyimage.com/150x150/ced4da/6c757d" alt="..." />
-          <h5 class="fw-bolder">Engineering Team</h5>
-          <div class="fst-italic text-muted">Core Development</div>
+      <div class="row gx-5 align-items-center">
+        <div class="col-lg-6">
+          <img class="img-fluid rounded-4 shadow mb-5 mb-lg-0" src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=1000&q=80" alt="Library" />
         </div>
-        <div class="col mb-5 mb-5 mb-xl-0 text-center">
-          <img class="img-fluid rounded-circle mb-4 px-4" src="https://dummyimage.com/150x150/ced4da/6c757d" alt="..." />
-          <h5 class="fw-bolder">Operations</h5>
-          <div class="fst-italic text-muted">Infrastructure & Cloud</div>
+        <div class="col-lg-6">
+          <h2 class="fw-bolder mb-3">Core Capabilities</h2>
+          <ul class="list-unstyled text-muted">
+            <li class="mb-3 d-flex align-items-start">
+              <i class="bi bi-check-circle-fill text-primary me-3 mt-1"></i>
+              <div><strong>Centralized Catalog:</strong> Complete tracking of copies, authors, and genres.</div>
+            </li>
+            <li class="mb-3 d-flex align-items-start">
+              <i class="bi bi-check-circle-fill text-primary me-3 mt-1"></i>
+              <div><strong>Transparent Loan Cycles:</strong> Automated fine calculations and payment tracking.</div>
+            </li>
+            <li class="mb-3 d-flex align-items-start">
+              <i class="bi bi-check-circle-fill text-primary me-3 mt-1"></i>
+              <div><strong>Data-Driven Reports:</strong> Daily, weekly, and monthly circulation analytics for administration.</div>
+            </li>
+          </ul>
         </div>
       </div>
     </div>

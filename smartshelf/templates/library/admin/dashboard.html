@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Librarian Panel - SmartShelf{% endblock %}
+
+{% block content %}
+<div class="container px-5 my-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bolder mb-0">Librarian Management Dashboard</h2>
+    <div class="d-flex gap-2">
+      <a href="{% url 'library:book_create' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Book</a>
+      <a href="{% url 'library:reports' %}" class="btn btn-outline-secondary"><i class="bi bi-bar-chart"></i> Reports</a>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white border-0 shadow-sm">
+        <div class="card-body">
+          <div class="text-uppercase small fw-bold">Total Books</div>
+          <div class="display-6 fw-bold">{{ total_books }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white border-0 shadow-sm">
+        <div class="card-body">
+          <div class="text-uppercase small fw-bold">Active Loans</div>
+          <div class="display-6 fw-bold">{{ borrowed_books_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-dark border-0 shadow-sm">
+        <div class="card-body">
+          <div class="text-uppercase small fw-bold">Overdue Loans</div>
+          <div class="display-6 fw-bold">{{ overdue_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-danger text-white border-0 shadow-sm">
+        <div class="card-body">
+          <div class="text-uppercase small fw-bold">Unpaid Fines</div>
+          <div class="display-6 fw-bold">${{ unpaid_fines_total }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Quick Navigation -->
+  <div class="btn-group mb-4">
+    <a href="{% url 'library:manage_books' %}" class="btn btn-outline-dark">Manage Catalog</a>
+    <a href="{% url 'library:manage_fines' %}" class="btn btn-outline-dark">Manage Fines</a>
+    <a href="{% url 'library:monitor_users' %}" class="btn btn-outline-dark">Monitor Users</a>
+  </div>
+
+  <!-- Recent Loan Activities -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-dark text-white fw-bold">Recent Borrow Activities</div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>User</th>
+            <th>Book</th>
+            <th>Borrow Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent_records %}
+            <tr>
+              <td>{{ r.user.email }}</td>
+              <td>{{ r.book.title }}</td>
+              <td>{{ r.borrow_date }}</td>
+              <td>{{ r.due_date }}</td>
+              <td><span class="badge bg-secondary">{{ r.get_status_display }}</span></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-center py-4 text-muted">No recent activity.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

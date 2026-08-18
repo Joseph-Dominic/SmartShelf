@@ -95,6 +95,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "smartshelf.users",
+    "smartshelf.library",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps

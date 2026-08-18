@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}Manage Books - SmartShelf Admin{% endblock %}
+
+{% block content %}
+<div class="container px-5 my-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bolder mb-1">Book Catalog Management</h2>
+      <p class="text-muted small mb-0">Add, edit, or remove books from the library inventory.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'library:librarian_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Dashboard
+      </a>
+      <a href="{% url 'library:book_create' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle me-1"></i> Add New Book
+      </a>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Cover</th>
+            <th>Title & ISBN</th>
+            <th>Author</th>
+            <th>Category</th>
+            <th>Stock (Avail / Total)</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for book in books %}
+            <tr>
+              <td class="ps-4">
+                {% if book.cover_image %}
+                  <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" class="rounded shadow-sm" style="width: 45px; height: 60px; object-fit: cover;" />
+                {% else %}
+                  <div class="bg-light text-secondary rounded d-flex align-items-center justify-content-center border" style="width: 45px; height: 60px;">
+                    <i class="bi bi-book"></i>
+                  </div>
+                {% endif %}
+              </td>
+              <td>
+                <div class="fw-bold text-dark">{{ book.title }}</div>
+                <div class="text-muted small">ISBN: {{ book.isbn }}</div>
+              </td>
+              <td>{{ book.author.name }}</td>
+              <td>
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                  {{ book.category.name|default:"Unassigned" }}
+                </span>
+              </td>
+              <td>
+                {% if book.available_copies > 0 %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">
+                    {{ book.available_copies }} / {{ book.total_copies }} Available
+                  </span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                    0 / {{ book.total_copies }} (Out of Stock)
+                  </span>
+                {% endif %}
+              </td>
+              <td class="text-end pe-4">
+                <a href="{% url 'library:book_update' book.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'library:book_delete' book.pk %}" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-5 text-muted">
+                <i class="bi bi-journal-x fs-1 d-block mb-2"></i>
+                No books found in the catalog. Click "Add New Book" to create one.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

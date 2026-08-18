@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Book Catalog - SmartShelf{% endblock %}
+
+{% block content %}
+<div class="container px-5 my-5">
+  <div class="row gx-5 align-items-center mb-4">
+    <div class="col-lg-6">
+      <h1 class="fw-bolder mb-1">Library Catalog</h1>
+      <p class="text-muted">Browse, filter, and borrow books from our collection.</p>
+    </div>
+    <div class="col-lg-6">
+      <form method="get" class="row g-2">
+        <div class="col-md-7">
+          <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search title, author, ISBN..." />
+        </div>
+        <div class="col-md-5 d-flex gap-2">
+          <select name="category" class="form-select">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+              <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row gx-4">
+    {% for book in books %}
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body p-4">
+            <span class="badge bg-secondary mb-2">{{ book.category.name|default:"General" }}</span>
+            <h5 class="card-title fw-bold">{{ book.title }}</h5>
+            <p class="text-muted small mb-2">By <strong>{{ book.author.name }}</strong></p>
+            <p class="small text-secondary mb-3">ISBN: {{ book.isbn }}</p>
+            <p class="card-text text-muted small">{{ book.description|truncatewords:18 }}</p>
+          </div>
+          <div class="card-footer p-4 pt-0 bg-transparent border-top-0 d-flex justify-content-between align-items-center">
+            {% if book.is_available %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">{{ book.available_copies }} In Stock</span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Out of Stock</span>
+            {% endif %}
+            <a href="{% url 'library:book_detail' book.pk %}" class="btn btn-outline-primary btn-sm">View Details</a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12 text-center py-5">
+        <i class="bi bi-book fs-1 text-muted d-block mb-3"></i>
+        <h5 class="text-muted">No books found matching your criteria.</h5>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

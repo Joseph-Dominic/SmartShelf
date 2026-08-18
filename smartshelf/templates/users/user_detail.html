@@ -1,41 +1,83 @@
 {% extends "base.html" %}
+{% load static i18n %}
 
-{% load static %}
+{% block title %}User Dashboard - {{ object.email }}{% endblock title %}
 
-{% block title %}
-  User: 
-  
-    {{ object.name }}
-  
-  
-{% endblock title %}
 {% block content %}
-  <div class="container">
-    <div class="row">
-      <div class="col-sm-12">
-        <h2>
-        
-        
-          {{ object.name }}
-        
-      </h2>
-    </div>
-  </div>
-  {% if object == request.user %}
-    <!-- Action buttons -->
-    <div class="row">
-      <div class="col-sm-12">
-        <a class="btn btn-primary" href="{% url 'users:update' %}" role="button">My Info</a>
-        <a class="btn btn-primary"
-           href="{% url 'account_email' %}"
-           role="button">E-Mail</a>
-        <a class="btn btn-primary"
-           href="{% url 'mfa_index' %}"
-           role="button">MFA</a>
-        <!-- Your Stuff: Custom user template urls -->
+<div class="container px-5 my-5">
+  <div class="row gx-5">
+    <!-- Left Column: User Profile Details -->
+    <div class="col-lg-4 mb-4">
+      <div class="card shadow-sm border-0 text-center p-4">
+        <div class="mb-3">
+          <div class="bg-primary bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 80px; height: 80px;">
+            <i class="bi bi-person-circle fs-1"></i>
+          </div>
+        </div>
+        <h4 class="fw-bold mb-1">{{ object.name|default:"Library Member" }}</h4>
+        <p class="text-muted small mb-2">{{ object.email }}</p>
+        <div class="mb-3">
+          {% if object.is_staff %}
+            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill"><i class="bi bi-shield-lock me-1"></i> Librarian / Staff</span>
+          {% else %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">Active Member</span>
+          {% endif %}
+        </div>
+        <hr />
+        <div class="d-grid gap-2">
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'users:update' %}">
+            <i class="bi bi-pencil me-1"></i> Edit Profile Info
+          </a>
+          <a class="btn btn-outline-secondary btn-sm" href="{% url 'account_change_password' %}">
+            <i class="bi bi-key me-1"></i> Change Password
+          </a>
+          <a class="btn btn-outline-secondary btn-sm" href="{% url 'account_email' %}">
+            <i class="bi bi-envelope me-1"></i> Manage Email
+          </a>
+        </div>
       </div>
     </div>
-    <!-- End Action buttons -->
-  {% endif %}
+
+    <!-- Right Column: Library Actions -->
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+          <h4 class="fw-bold mb-0"><i class="bi bi-grid-fill text-primary me-2"></i>My Library Hub</h4>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="p-4 border rounded-3 bg-light text-center h-100 d-flex flex-column justify-content-center">
+                <i class="bi bi-book fs-1 text-primary mb-2"></i>
+                <h5 class="fw-bold">Browse Catalog</h5>
+                <p class="text-muted small mb-3">Explore available books across authors and categories.</p>
+                <a href="{% url 'library:book_list' %}" class="btn btn-primary btn-sm mt-auto">Go to Catalog</a>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="p-4 border rounded-3 bg-light text-center h-100 d-flex flex-column justify-content-center">
+                <i class="bi bi-journal-check fs-1 text-success mb-2"></i>
+                <h5 class="fw-bold">My Borrowed Books</h5>
+                <p class="text-muted small mb-3">View active loans, return dates, and fine payment history.</p>
+                <a href="{% url 'library:user_loans' %}" class="btn btn-success btn-sm mt-auto">View My Loans</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if object.is_staff or object.is_superuser %}
+        <div class="card shadow-sm border-0 border-start border-warning border-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold text-dark mb-2"><i class="bi bi-speedometer2 text-warning me-2"></i>Librarian Control Panel</h5>
+            <p class="text-muted small mb-3">Manage book inventory, track overdue loans, issue fines, and export circulation reports.</p>
+            <a href="{% url 'library:librarian_dashboard' %}" class="btn btn-warning fw-semibold btn-sm">
+              Open Admin Dashboard
+            </a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
 {% endblock content %}

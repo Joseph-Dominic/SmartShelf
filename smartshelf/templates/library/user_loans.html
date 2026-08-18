@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}My Library Account - SmartShelf{% endblock %}
+
+{% block content %}
+<div class="container px-5 my-5">
+  <h2 class="fw-bolder mb-4">My Library Account</h2>
+
+  <div class="card shadow-sm border-0 mb-5">
+    <div class="card-header bg-dark text-white fw-bold">Active Borrowed Books</div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Book</th>
+            <th>Borrow Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for loan in active_loans %}
+            <tr>
+              <td class="fw-bold">{{ loan.book.title }}</td>
+              <td>{{ loan.borrow_date }}</td>
+              <td><span class="text-danger fw-semibold">{{ loan.due_date }}</span></td>
+              <td><span class="badge bg-primary">{{ loan.get_status_display }}</span></td>
+              <td>
+                <a href="{% url 'library:return_book' loan.id %}" class="btn btn-sm btn-outline-success">Return Book</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-center py-4 text-muted">You have no active borrowed books.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if recommendations %}
+    <div class="mb-5">
+      <h3 class="fw-bolder mb-3">Recommended For You</h3>
+      <div class="row gx-4">
+        {% for rec in recommendations %}
+          <div class="col-md-3 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body">
+                <span class="badge bg-info text-dark mb-2">{{ rec.category.name }}</span>
+                <h6 class="card-title fw-bold mb-1">{{ rec.title }}</h6>
+                <p class="small text-muted mb-3">{{ rec.author.name }}</p>
+                <a href="{% url 'library:book_detail' rec.pk %}" class="btn btn-sm btn-outline-primary w-100">View Book</a>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-light fw-bold">Borrowing History & Fines</div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Book</th>
+            <th>Borrowed</th>
+            <th>Returned</th>
+            <th>Fine Amount</th>
+            <th>Payment Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for hist in history %}
+            <tr>
+              <td>{{ hist.book.title }}</td>
+              <td>{{ hist.borrow_date }}</td>
+              <td>{{ hist.return_date }}</td>
+              <td>
+                {% if hist.fine %}${{ hist.fine.amount }}{% else %}$0.00{% endif %}
+              </td>
+              <td>
+                {% if hist.fine %}
+                  {% if hist.fine.is_paid %}
+                    <span class="badge bg-success">Paid</span>
+                  {% else %}
+                    <span class="badge bg-danger">Unpaid</span>
+                  {% endif %}
+                {% else %}
+                  <span class="badge bg-secondary">No Fine</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-center py-3 text-muted">No past loan history.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

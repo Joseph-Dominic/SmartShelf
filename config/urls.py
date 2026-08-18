@@ -22,6 +22,8 @@ urlpatterns = [
     # ...
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
+    path("library/", include("smartshelf.library.urls", namespace="library")),
+    *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
 
 

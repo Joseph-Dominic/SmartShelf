@@ -10846,3 +10846,27 @@ html {
   background-repeat: no-repeat;
   min-height: 15rem;
 }
+
+/* Input field refinements */
+.input-group .form-control:focus {
+  box-shadow: none;
+  background-color: #fff !important;
+}
+
+.input-group-text {
+  border-color: #dee2e6;
+}
+
+.input-group .form-control {
+  border-color: #dee2e6;
+}
+
+.form-control:focus, 
+.input-group-text:focus-within {
+  border-color: #0d6efd;
+}
+
+/* Card aesthetics */
+.rounded-4 {
+  border-radius: 1rem !important;
+}
