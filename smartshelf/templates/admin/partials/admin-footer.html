@@ -1,0 +1,21 @@
+    {% load static %}
+      </div>
+    </div>
+  </div>
+
+  {% include "admin/partials/scripts.html" %}
+
+  <script src="{% static 'assets/js/vendors/sidebarnav.js' %}"></script>
+  <script src="{% static 'assets/libs/jsvectormap/dist/js/jsvectormap.min.js' %}"></script>
+  <script src="{% static 'assets/libs/jsvectormap/dist/maps/world.js' %}"></script>
+  <script src="{% static 'assets/libs/jsvectormap/dist/maps/world-merc.js' %}"></script>
+  <script src="{% static 'assets/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+  <script src="{% static 'assets/js/vendors/chart.js' %}"></script>
+  <script src="{% static 'assets/libs/choices.js/public/assets/scripts/choices.min.js' %}"></script>
+  <script src="{% static 'assets/js/vendors/choice.js' %}"></script>
+  <script src="{% static 'assets/libs/swiper/swiper-bundle.min.js' %}"></script>
+  <script src="{% static 'assets/js/vendors/swiper.js' %}"></script>
+
+  {% block extra_javascript %}{% endblock extra_javascript %}
+</body>
+</html>
