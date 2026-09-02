@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Delete {{ object }} - SmartShelf Admin{% endblock %}
+
+{% block content %}
+<div class="container px-5 my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+      <div class="card shadow-sm border-0 rounded-4 text-center p-4 p-sm-5">
+        <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+          <i class="bi bi-exclamation-triangle fs-3"></i>
+        </div>
+        <h3 class="fw-bold mb-2">Delete Book</h3>
+        <p class="text-muted small mb-4">
+          Are you sure you want to permanently delete <strong>"{{ object.title }}"</strong>? This action cannot be undone.
+        </p>
+        <form method="post">
+          {% csrf_token %}
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-danger btn-lg fw-semibold">Confirm Delete</button>
+            <a href="{% url 'admin_app:manage_books' %}" class="btn btn-outline-secondary btn-lg">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

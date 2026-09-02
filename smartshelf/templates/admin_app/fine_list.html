@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}Fine Management - SmartShelf Admin{% endblock %}
+
+{% block content %}
+<div class="container px-5 my-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bolder mb-1">Overdue Fine Collections</h2>
+      <p class="text-muted small mb-0">Track and settle fines accumulated from late returns.</p>
+    </div>
+    <a href="{% url 'admin_app:librarian_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Dashboard
+    </a>
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Borrower</th>
+            <th>Book Title</th>
+            <th>Due Date</th>
+            <th>Return Date</th>
+            <th>Amount</th>
+            <th>Payment Status</th>
+            <th class="text-end pe-4">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fine in fines %}
+            <tr>
+              <td class="ps-4">
+                <div class="fw-semibold">{{ fine.borrow_record.user.email }}</div>
+                <div class="text-muted small">{{ fine.borrow_record.user.name|default:"" }}</div>
+              </td>
+              <td>{{ fine.borrow_record.book.title }}</td>
+              <td><span class="text-danger small fw-semibold">{{ fine.borrow_record.due_date }}</span></td>
+              <td><span class="small text-muted">{{ fine.borrow_record.return_date|default:"Not returned" }}</span></td>
+              <td class="fw-bold">${{ fine.amount }}</td>
+              <td>
+                {% if fine.is_paid %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">
+                    Paid ({{ fine.paid_at|date:"M d, Y" }})
+                  </span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                    Unpaid
+                  </span>
+                {% endif %}
+              </td>
+              <td class="text-end pe-4">
+                {% if not fine.is_paid %}
+                  <a href="{% url 'admin_app:mark_fine_paid' fine.id %}" class="btn btn-sm btn-success">
+                    <i class="bi bi-check-circle me-1"></i> Mark as Paid
+                  </a>
+                {% else %}
+                  <button class="btn btn-sm btn-light text-muted" disabled>Settled</button>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i class="bi bi-cash-coin fs-1 d-block mb-2"></i>
+                No fines on record.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

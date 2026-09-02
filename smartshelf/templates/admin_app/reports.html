@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}System Reports - SmartShelf{% endblock %}
+
+{% block content %}
+<div class="container px-5 my-5">
+  <h2 class="fw-bolder mb-4">Library Performance Reports</h2>
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <h5 class="text-muted">Today's Loans</h5>
+        <h2 class="fw-bold text-primary">{{ daily_loans }}</h2>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <h5 class="text-muted">Weekly Loans (7 Days)</h5>
+        <h2 class="fw-bold text-success">{{ weekly_loans }}</h2>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <h5 class="text-muted">Monthly Loans (30 Days)</h5>
+        <h2 class="fw-bold text-info">{{ monthly_loans }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="row g-4 mt-2">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <h5 class="text-muted">Today's Collected Fines</h5>
+        <h2 class="fw-bold text-success">${{ daily_fines }}</h2>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <h5 class="text-muted">Monthly Collected Fines</h5>
+        <h2 class="fw-bold text-success">${{ monthly_fines }}</h2>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
