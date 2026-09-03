@@ -24,6 +24,8 @@ urlpatterns = [
     path("users/", include("smartshelf.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
     path("admin-app/", include("smartshelf.admin_app.urls", namespace="admin_app")),
+    # Legacy admin path; implementation is owned by admin_app.
+    path("library/manage/", include("smartshelf.admin_app.urls", namespace="admin_app_legacy")),
     # Your stuff: custom urls includes go here
     # ...
     # Media files

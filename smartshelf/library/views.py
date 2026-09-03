@@ -2,7 +2,6 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib import messages
-from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
@@ -11,9 +10,6 @@ from django.utils import timezone
 
 from .forms import AuthorForm, BookForm, CategoryForm, IssueBookForm
 from .models import Author, Book, BorrowRecord, Category, Fine
-
-User = get_user_model()
-
 
 # ==========================================
 # USER & CATALOG VIEWS

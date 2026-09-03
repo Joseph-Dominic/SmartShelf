@@ -51,8 +51,3 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 
 user_redirect_view = UserRedirectView.as_view()
 
-from django.shortcuts import render
-
-
-def test_dasher(request):
-    return render(request, "admin/base.html")
