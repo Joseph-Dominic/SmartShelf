@@ -16,10 +16,10 @@ class UserAdminChangeForm(admin_forms.UserChangeForm):
 class UserAdminCreationForm(admin_forms.UserCreationForm):
     class Meta(admin_forms.UserCreationForm.Meta):
         model = User
-        fields = ("username", "email")
+        fields = ("email",)
         field_classes = {"email": forms.EmailField}
         error_messages = {
-            "username": {"unique": _("This username has already been taken.")},
+            "email": {"unique": _("This email has already been taken.")},
         }
 
 
