@@ -1,4 +1,5 @@
 from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
@@ -37,7 +38,7 @@ class Book(models.Model):
     isbn = models.CharField(_("ISBN"), max_length=13, unique=True)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="books", verbose_name=_("Author"))
     category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="books", verbose_name=_("Category")
+        Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="books", verbose_name=_("Category"),
     )
     description = models.TextField(_("Description"), blank=True)
     total_copies = models.PositiveIntegerField(_("Total Copies"), default=1)
@@ -68,7 +69,7 @@ class BorrowRecord(models.Model):
         OVERDUE = "OVERDUE", _("Overdue")
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="borrow_records", verbose_name=_("User")
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="borrow_records", verbose_name=_("User"),
     )
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="borrow_records", verbose_name=_("Book"))
     borrow_date = models.DateField(_("Borrow Date"), default=timezone.now)
@@ -95,7 +96,7 @@ class BorrowRecord(models.Model):
 
 class Fine(models.Model):
     borrow_record = models.OneToOneField(
-        BorrowRecord, on_delete=models.CASCADE, related_name="fine", verbose_name=_("Borrow Record")
+        BorrowRecord, on_delete=models.CASCADE, related_name="fine", verbose_name=_("Borrow Record"),
     )
     amount = models.DecimalField(_("Fine Amount ($)"), max_digits=8, decimal_places=2, default=Decimal("0.00"))
     is_paid = models.BooleanField(_("Paid Status"), default=False)

@@ -16,13 +16,32 @@ if TYPE_CHECKING:
     from django.db.models import QuerySet
 
 
+# smartshelf/users/views.py
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import DetailView
+from smartshelf.library.models import BorrowingPolicy, Loan
+from .models import User
+
 class UserDetailView(LoginRequiredMixin, DetailView):
     model = User
-    slug_field = "id"
-    slug_url_kwarg = "id"
+    template_name = "users/user_detail.html"
+    context_object_name = "user_obj"
 
+    def get_object(self):
+        return self.request.user
 
-user_detail_view = UserDetailView.as_view()
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # Pull active policy
+        policy = BorrowingPolicy.objects.filter(role=user.role).first()
+        active_loans = Loan.objects.filter(user=user, status="ACTIVE")
+        
+        context["policy"] = policy
+        context["active_loans_count"] = active_loans.count()
+        context["has_overdue"] = any(loan.overdue_days > 0 for loan in active_loans)
+        return context
 
 
 class UserUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):

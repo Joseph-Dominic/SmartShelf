@@ -1,29 +1,15 @@
 from django import forms
-from .models import Author, Book, Category, Fine
+from .models import Book, BookCopy, Subject, Author
 
 
-class BookForm(forms.ModelForm):
+class SubjectForm(forms.ModelForm):
+    """Aligns with the academic LMS requirement for Subjects/Departments."""
     class Meta:
-        model = Book
-        fields = ["title", "isbn", "author", "category", "description", "total_copies", "available_copies", "cover_image"]
+        model = Subject
+        fields = ["code", "name", "description"]
         widgets = {
-            "title": forms.TextInput(attrs={"class": "form-control"}),
-            "isbn": forms.TextInput(attrs={"class": "form-control"}),
-            "author": forms.Select(attrs={"class": "form-select"}),
-            "category": forms.Select(attrs={"class": "form-select"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-            "total_copies": forms.NumberInput(attrs={"class": "form-control"}),
-            "available_copies": forms.NumberInput(attrs={"class": "form-control"}),
-            "cover_image": forms.ClearableFileInput(attrs={"class": "form-control"}),
-        }
-
-
-class CategoryForm(forms.ModelForm):
-    class Meta:
-        model = Category
-        fields = ["name", "description"]
-        widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "code": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., CS101"}),
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Computer Science"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         }
 
@@ -38,7 +24,49 @@ class AuthorForm(forms.ModelForm):
         }
 
 
+class BookForm(forms.ModelForm):
+    """Manages title metadata only. Physical counts are derived from BookCopy."""
+    class Meta:
+        model = Book
+        fields = ["title", "isbn", "author", "subject", "edition", "publisher", "description", "cover_image"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),
+            "isbn": forms.TextInput(attrs={"class": "form-control"}),
+            "author": forms.Select(attrs={"class": "form-select"}),
+            "subject": forms.Select(attrs={"class": "form-select"}),
+            "edition": forms.TextInput(attrs={"class": "form-control"}),
+            "publisher": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "cover_image": forms.ClearableFileInput(attrs={"class": "form-control"}),
+        }
+
+
+class BookCopyForm(forms.ModelForm):
+    """Allows librarians to add individual physical copies with shelf tags."""
+    class Meta:
+        model = BookCopy
+        fields = ["book", "accession_number", "shelf_location", "status"]
+        widgets = {
+            "book": forms.Select(attrs={"class": "form-select"}),
+            "accession_number": forms.TextInput(attrs={"class": "form-control", "placeholder": "Barcode / Accession ID"}),
+            "shelf_location": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Shelf B-3"}),
+            "status": forms.Select(attrs={"class": "form-select"}),
+        }
+
+
 class IssueBookForm(forms.Form):
-    user_email = forms.EmailField(widget=forms.EmailInput(attrs={"class": "form-control", "placeholder": "User Email"}))
-    book_id = forms.IntegerField(widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": "Book ID"}))
-    duration_days = forms.IntegerField(initial=14, widget=forms.NumberInput(attrs={"class": "form-control"}))
+    """Fast circulation desk checkout form using unique barcodes and member IDs."""
+    member_identifier = forms.CharField(
+        label="Student Roll No / Staff ID / Email",
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Roll No, Staff ID, or Email"}),
+    )
+    accession_number = forms.CharField(
+        label="Physical Copy Barcode / Accession No",
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Scan or type Barcode ID"}),
+    )
+    custom_days = forms.IntegerField(
+        required=False,
+        label="Custom Loan Days (Optional)",
+        help_text="Leave empty to apply default role policy duration.",
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": "Default by Role"}),
+    )

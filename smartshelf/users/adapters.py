@@ -1,22 +1,26 @@
 from __future__ import annotations
-
 import typing
-
-from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
 
 if typing.TYPE_CHECKING:
     from allauth.socialaccount.models import SocialLogin
     from django.http import HttpRequest
-
     from smartshelf.users.models import User
 
 
-class AccountAdapter(DefaultAccountAdapter):
-    def is_open_for_signup(self, request: HttpRequest) -> bool:
-        return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
+# smartshelf/users/adapters.py
+from allauth.account.adapter import DefaultAccountAdapter
+from django.urls import reverse
 
+class AccountAdapter(DefaultAccountAdapter):
+    def get_login_redirect_url(self, request):
+        user = request.user
+        if user.is_authenticated:
+            if user.is_librarian:
+                return reverse("library:admin_dashboard")
+            return reverse("library:user_loans")
+        return reverse("home")
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def is_open_for_signup(

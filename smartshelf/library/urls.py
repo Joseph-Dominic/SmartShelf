@@ -1,4 +1,5 @@
 from django.urls import path
+
 from . import views
 
 app_name = "library"
@@ -12,7 +13,7 @@ urlpatterns = [
     path("my-loans/", views.user_loans, name="user_loans"),
 
     # Librarian / Admin routes
-    path("manage/dashboard/", views.librarian_dashboard, name="librarian_dashboard"),
+   path("manage/dashboard/", views.librarian_dashboard, name="librarian_dashboard"),
     path("manage/books/", views.manage_books, name="manage_books"),
     path("manage/books/add/", views.book_create, name="book_create"),
     path("manage/books/<int:pk>/edit/", views.book_update, name="book_update"),

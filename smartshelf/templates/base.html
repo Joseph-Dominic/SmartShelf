@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-  <meta name="description" content="{% block description %}SmartShelf Project{% endblock %}" />
+  <meta name="description" content="{% block description %}SmartShelf - Academic Library Management System{% endblock %}" />
   <meta name="author" content="" />
   <title>{% block title %}SmartShelf{% endblock title %}</title>
 
@@ -25,7 +25,9 @@
     <!-- Navigation-->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container px-5">
-        <a class="navbar-brand fw-bold" href="{% url 'home' %}">SmartShelf</a>
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="{% url 'home' %}">
+          <i class="bi bi-journal-bookmark-fill text-primary me-2"></i>SmartShelf
+        </a>
         <button
           class="navbar-toggler"
           type="button"
@@ -38,40 +40,118 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <!-- Primary Circulation & Catalog Links -->
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
             <li class="nav-item">
               <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">
                 {% translate "Home" %}
               </a>
             </li>
+
+            <!-- Public Catalog (Teammate 1 View) -->
+            <li class="nav-item">
+              <a class="nav-link {% if 'book' in request.resolver_match.url_name and 'manage' not in request.resolver_match.url_name %}active{% endif %}" href="{% url 'library:book_list' %}">
+                <i class="bi bi-search me-1"></i>{% translate "Book Catalog" %}
+              </a>
+            </li>
+
+            {% if request.user.is_authenticated %}
+              <!-- Admin / Librarian Desk Dropdown (Admin Friend View) -->
+              {% if request.user.is_librarian or request.user.role == 'ADMIN' or request.user.is_superuser %}
+                <li class="nav-item dropdown">
+                  <a
+                    class="nav-link dropdown-toggle text-warning fw-semibold"
+                    id="navbarDropdownAdmin"
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    <i class="bi bi-shield-lock-fill me-1"></i>{% translate "Librarian Desk" %}
+                  </a>
+                  <ul class="dropdown-menu shadow" aria-labelledby="navbarDropdownAdmin">
+                    <li>
+                      <a class="dropdown-item" href="{% url 'library:dashboard' %}">
+                        <i class="bi bi-speedometer2 me-2"></i>{% translate "Circulation Dashboard" %}
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="{% url 'library:book_manage' %}">
+                        <i class="bi bi-bookshelf me-2"></i>{% translate "Manage Inventory & Copies" %}
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="{% url 'library:fine_list' %}">
+                        <i class="bi bi-cash-stack me-2"></i>{% translate "Fines & Overdues" %}
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="{% url 'library:user_monitor' %}">
+                        <i class="bi bi-people me-2"></i>{% translate "User Monitor" %}
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider" /></li>
+                    <li>
+                      <a class="dropdown-item" href="{% url 'library:reports' %}">
+                        <i class="bi bi-graph-up me-2"></i>{% translate "System Reports" %}
+                      </a>
+                    </li>
+                  </ul>
+                </li>
+              {% else %}
+                <!-- Borrower Dashboard Link (Teammate 2 View: UG, PG, Staff) -->
+                <li class="nav-item">
+                  <a class="nav-link {% if request.resolver_match.url_name == 'user_loans' %}active{% endif %}" href="{% url 'library:user_loans' %}">
+                    <i class="bi bi-book me-1"></i>{% translate "My Loans & Renewals" %}
+                  </a>
+                </li>
+              {% endif %}
+            {% endif %}
+
             <li class="nav-item">
               <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'about' %}">
                 {% translate "About" %}
               </a>
             </li>
+          </ul>
 
+          <!-- User Authentication & Profile Menu -->
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
             {% if request.user.is_authenticated %}
               <li class="nav-item dropdown">
                 <a
-                  class="nav-link dropdown-toggle"
+                  class="nav-link dropdown-toggle d-flex align-items-center"
                   id="navbarDropdownUser"
                   href="#"
                   role="button"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  {{ request.user.email|default:request.user.username }}
+                  <span class="badge bg-secondary me-2">{{ request.user.get_role_display|default:"Member" }}</span>
+                  <span>{{ request.user.username }}</span>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownUser">
-                  <li>
-                    <a class="dropdown-item" href="{% url 'users:detail' request.user.pk %}">
-                      {% translate "My Profile" %}
-                    </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="navbarDropdownUser">
+                  <li class="px-3 py-1">
+                    <div class="small text-muted">Signed in as:</div>
+                    <div class="fw-semibold text-truncate" style="max-width: 180px;">{{ request.user.email|default:request.user.username }}</div>
                   </li>
                   <li><hr class="dropdown-divider" /></li>
                   <li>
+                    <a class="dropdown-item" href="{% url 'users:detail' request.user.pk %}">
+                      <i class="bi bi-person-lines-fill me-2"></i>{% translate "Borrowing Limits & Profile" %}
+                    </a>
+                  </li>
+                  {% if not request.user.is_librarian and request.user.role != 'ADMIN' and not request.user.is_superuser %}
+                    <li>
+                      <a class="dropdown-item" href="{% url 'library:user_loans' %}">
+                        <i class="bi bi-clock-history me-2"></i>{% translate "Loan History" %}
+                      </a>
+                    </li>
+                  {% endif %}
+                  <li><hr class="dropdown-divider" /></li>
+                  <li>
                     <a class="dropdown-item text-danger" href="{% url 'account_logout' %}">
-                      {% translate "Sign Out" %}
+                      <i class="bi bi-box-arrow-right me-2"></i>{% translate "Sign Out" %}
                     </a>
                   </li>
                 </ul>
@@ -95,7 +175,7 @@
     {% if messages %}
       <div class="container px-5 mt-3">
         {% for message in messages %}
-          <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}" role="alert">
+          <div class="alert alert-dismissible fade show shadow-sm {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}" role="alert">
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>

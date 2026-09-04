@@ -1,15 +1,25 @@
 from datetime import timedelta
 from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
-from django.db.models import Count, Q, Sum
-from django.shortcuts import get_object_or_404, redirect, render
+from django.db.models import Count
+from django.db.models import Q
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404
+from django.shortcuts import redirect
+from django.shortcuts import render
 from django.utils import timezone
 
-from .forms import AuthorForm, BookForm, CategoryForm, IssueBookForm
-from .models import Author, Book, BorrowRecord, Category, Fine
+from .forms import BookForm
+from .models import Author
+from .models import Book
+from .models import BorrowRecord
+from .models import Category
+from .models import Fine
 
 User = get_user_model()
 
@@ -35,7 +45,7 @@ def book_catalog(request):
         books = books.filter(
             Q(title__icontains=query)
             | Q(isbn__icontains=query)
-            | Q(author__name__icontains=query)
+            | Q(author__name__icontains=query),
         )
     if category_id:
         books = books.filter(category_id=category_id)
@@ -178,7 +188,7 @@ def librarian_dashboard(request):
     available_books = Book.objects.aggregate(avail=Sum("available_copies"))["avail"] or 0
     borrowed_books_count = BorrowRecord.objects.filter(status=BorrowRecord.Status.BORROWED).count()
     overdue_count = BorrowRecord.objects.filter(
-        status=BorrowRecord.Status.BORROWED, due_date__lt=timezone.now().date()
+        status=BorrowRecord.Status.BORROWED, due_date__lt=timezone.now().date(),
     ).count()
     unpaid_fines_total = (
         Fine.objects.filter(is_paid=False).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
