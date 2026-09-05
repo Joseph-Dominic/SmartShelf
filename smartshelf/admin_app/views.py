@@ -1,9 +1,11 @@
 from datetime import timedelta
 from decimal import Decimal
+from functools import wraps
 
+from django.core.exceptions import PermissionDenied
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -18,8 +20,18 @@ def is_librarian(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
 
 
-@login_required
-@user_passes_test(is_librarian)
+def librarian_required(view):
+    @wraps(view)
+    @login_required
+    def wrapped_view(request, *args, **kwargs):
+        if not is_librarian(request.user):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+
+    return wrapped_view
+
+
+@librarian_required
 def librarian_dashboard(request):
     """Main administrative dashboard with key metrics and active loans."""
     total_books = Book.objects.aggregate(total=Sum("total_copies"))["total"] or 0
@@ -51,16 +63,14 @@ def librarian_dashboard(request):
     )
 
 
-@login_required
-@user_passes_test(is_librarian)
+@librarian_required
 def manage_books(request):
     """Admin book management list."""
     books = Book.objects.select_related("author", "category").all()
     return render(request, "admin_app/book_manage.html", {"books": books})
 
 
-@login_required
-@user_passes_test(is_librarian)
+@librarian_required
 def book_create(request):
     """Add a new book to the catalog."""
     if request.method == "POST":
@@ -74,8 +84,7 @@ def book_create(request):
     return render(request, "admin_app/book_form.html", {"form": form, "title": "Add New Book"})
 
 
-@login_required
-@user_passes_test(is_librarian)
+@librarian_required
 def book_update(request, pk):
     """Edit existing book details."""
     book = get_object_or_404(Book, pk=pk)
@@ -90,8 +99,7 @@ def book_update(request, pk):
     return render(request, "admin_app/book_form.html", {"form": form, "title": f"Edit {book.title}"})
 
 
-@login_required
-@user_passes_test(is_librarian)
+@librarian_required
 def book_delete(request, pk):
     """Delete a book."""
     book = get_object_or_404(Book, pk=pk)
@@ -102,16 +110,14 @@ def book_delete(request, pk):
     return render(request, "admin_app/confirm_delete.html", {"object": book})
 
 
-@login_required
-@user_passes_test(is_librarian)
+@librarian_required
 def manage_fines(request):
     """Admin fine collection and status tracking."""
     fines = Fine.objects.select_related("borrow_record__user", "borrow_record__book").order_by("-id")
     return render(request, "admin_app/fine_list.html", {"fines": fines})
 
 
-@login_required
-@user_passes_test(is_librarian)
+@librarian_required
 def mark_fine_paid(request, fine_id):
     """Mark a fine as collected/paid."""
     fine = get_object_or_404(Fine, id=fine_id)
@@ -122,8 +128,7 @@ def mark_fine_paid(request, fine_id):
     return redirect("admin_app:manage_fines")
 
 
-@login_required
-@user_passes_test(is_librarian)
+@librarian_required
 def reports_view(request):
     """Generate daily, weekly, and monthly borrowing reports."""
     today = timezone.now().date()
@@ -156,8 +161,7 @@ def reports_view(request):
     )
 
 
-@login_required
-@user_passes_test(is_librarian)
+@librarian_required
 def monitor_users(request):
     """Monitor registered users and their loan activities."""
     users = User.objects.annotate(

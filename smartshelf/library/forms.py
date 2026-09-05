@@ -17,6 +17,29 @@ class BookForm(forms.ModelForm):
             "cover_image": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        total_copies = cleaned_data.get("total_copies")
+        available_copies = cleaned_data.get("available_copies")
+
+        if total_copies is not None and total_copies < 1:
+            self.add_error("total_copies", "A book must have at least one copy.")
+        if (
+            total_copies is not None
+            and available_copies is not None
+            and available_copies > total_copies
+        ):
+            self.add_error("available_copies", "Available copies cannot exceed total copies.")
+
+        if self.instance.pk and total_copies is not None:
+            borrowed_copies = self.instance.total_copies - self.instance.available_copies
+            if total_copies < borrowed_copies:
+                self.add_error(
+                    "total_copies",
+                    f"Total copies cannot be less than the {borrowed_copies} currently borrowed.",
+                )
+        return cleaned_data
+
 
 class CategoryForm(forms.ModelForm):
     class Meta:

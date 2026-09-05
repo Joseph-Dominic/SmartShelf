@@ -1,22 +1,29 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 {% load i18n allauth account %}
 
 {% block title %}{% translate "Sign In" %} - SmartShelf{% endblock title %}
 
+{% block extra_css %}
+<style>
+  .login-panel { max-width: 460px; margin: 3rem auto; }
+  .login-panel .form-control { min-height: 48px; border-radius: 10px; }
+</style>
+{% endblock extra_css %}
+
 {% block content %}
-<div class="container py-5">
+<div class="login-panel">
   <div class="row justify-content-center">
-    <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
-      <div class="card border-0 shadow-sm rounded-4 p-3 p-sm-4 bg-white">
+    <div class="col-12">
+      <div class="card card-lg border-0">
         <div class="card-body">
           
           <!-- Header -->
-          <div class="text-center mb-4">
-            <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-circle mb-3" style="width: 52px; height: 52px;">
-              <i class="bi bi-box-arrow-in-right fs-4"></i>
+          <div class="text-center mb-6">
+            <div class="icon-shape icon-lg rounded-circle bg-primary-subtle text-primary mx-auto mb-4">
+              <i class="ti ti-lock fs-3"></i>
             </div>
             <h4 class="fw-bold mb-1">Welcome back</h4>
-            <p class="text-muted small">Enter your credentials to access your library account</p>
+            <p class="text-secondary small">Sign in to manage the SmartShelf library.</p>
           </div>
 
           <!-- Form -->
@@ -24,64 +31,46 @@
             {% csrf_token %}
 
             {% if form.non_field_errors %}
-              <div class="alert alert-danger border-0 small py-2 px-3 mb-3 rounded-3">
-                {% for error in form.non_field_errors %}
-                  <div>{{ error }}</div>
-                {% endfor %}
+              <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
               </div>
             {% endif %}
 
-            <!-- Email -->
-            <div class="mb-3">
-              <label for="id_login" class="form-label small fw-semibold text-secondary">Email Address</label>
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
-                <input type="email" name="login" id="id_login" class="form-control bg-light border-start-0 ps-0 {% if form.login.errors %}is-invalid{% endif %}" placeholder="name@example.com" value="{{ form.login.value|default:'' }}" required autofocus />
-              </div>
-              {% for error in form.login.errors %}
-                <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
+            <div class="mb-4">
+              <label for="id_login" class="form-label">Email address</label>
+              <input type="email" name="login" id="id_login" class="form-control{% if form.login.errors %} is-invalid{% endif %}"
+                placeholder="admin@example.com" value="{{ form.login.value|default:'' }}" required autofocus />
+              {% for error in form.login.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
 
-            <!-- Password -->
-            <div class="mb-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <label for="id_password" class="form-label small fw-semibold text-secondary mb-0">Password</label>
-                <a href="{% url 'account_reset_password' %}" class="small text-decoration-none text-muted">Forgot?</a>
+            <div class="mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label for="id_password" class="form-label mb-0">Password</label>
+                <a href="{% url 'account_reset_password' %}" class="small text-decoration-none">Forgot password?</a>
               </div>
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-key"></i></span>
-                <input type="password" name="password" id="id_password" class="form-control bg-light border-start-0 ps-0 {% if form.password.errors %}is-invalid{% endif %}" placeholder="••••••••" required />
-              </div>
-              {% for error in form.password.errors %}
-                <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
+              <input type="password" name="password" id="id_password" class="form-control{% if form.password.errors %} is-invalid{% endif %}"
+                required />
+              {% for error in form.password.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
 
-            <!-- Remember me -->
-            <div class="form-check mb-4">
+            <div class="form-check mb-5">
               <input class="form-check-input" type="checkbox" name="remember" id="id_remember" />
-              <label class="form-check-label small text-muted" for="id_remember">Remember me on this device</label>
+              <label class="form-check-label text-secondary" for="id_remember">Remember me</label>
             </div>
 
             {% if redirect_field_value %}
               <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
             {% endif %}
-
-            <!-- Submit -->
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold rounded-3 shadow-sm">
-              Sign In
-            </button>
+            <button type="submit" class="btn btn-primary w-100 py-3">Sign in</button>
           </form>
 
-          <!-- Footer Switch -->
-          <div class="text-center mt-4 pt-2 border-top">
-            <p class="small text-muted mb-0">Don't have an account? <a href="{% url 'account_signup' %}" class="fw-semibold text-decoration-none text-primary">Sign up</a></p>
+          <div class="text-center border-top mt-6 pt-5">
+            <span class="text-secondary small">New to SmartShelf?</span>
+            <a href="{% url 'account_signup' %}" class="small fw-semibold text-decoration-none">Create an account</a>
           </div>
-
         </div>
       </div>
     </div>
   </div>
-</div>
+ </div>
 {% endblock content %}

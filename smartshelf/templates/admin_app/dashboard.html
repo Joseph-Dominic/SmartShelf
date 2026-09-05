@@ -1,81 +1,102 @@
-{% extends "base.html" %}
-{% block title %}Librarian Panel - SmartShelf{% endblock %}
+{% extends "admin/base.html" %}
+
+{% block title %}Librarian Dashboard - SmartShelf{% endblock %}
 
 {% block content %}
-<div class="container px-5 my-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bolder mb-0">Librarian Management Dashboard</h2>
-    <div class="d-flex gap-2">
-      <a href="{% url 'admin_app:book_create' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Book</a>
-      <a href="{% url 'admin_app:reports' %}" class="btn btn-outline-secondary"><i class="bi bi-bar-chart"></i> Reports</a>
-    </div>
+<div class="row align-items-center mb-6 g-4">
+  <div class="col-lg">
+    <span class="text-primary fw-semibold small text-uppercase">SmartShelf overview</span>
+    <h1 class="mb-2 mt-2">Librarian dashboard</h1>
+    <p class="text-secondary mb-0">Keep your collection, loans, and library activity moving.</p>
   </div>
+  <div class="col-lg-auto d-flex flex-wrap gap-2">
+    <a href="{% url 'admin_app:book_create' %}" class="btn btn-primary">
+      <i class="ti ti-plus me-1"></i> Add book
+    </a>
+    <a href="{% url 'admin_app:reports' %}" class="btn btn-outline-secondary">
+      <i class="ti ti-chart-bar me-1"></i> Reports
+    </a>
+  </div>
+</div>
 
-  <div class="row g-4 mb-4">
-    <div class="col-md-3">
-      <div class="card bg-primary text-white border-0 shadow-sm">
-        <div class="card-body">
-          <div class="text-uppercase small fw-bold">Total Books</div>
-          <div class="display-6 fw-bold">{{ total_books }}</div>
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-6 mb-6">
+  <div class="col">
+    <div class="card card-lg h-100">
+      <div class="card-body d-flex flex-column gap-6">
+        <div class="d-flex align-items-center gap-3">
+          <div class="icon-shape icon-lg rounded-circle bg-primary-subtle text-primary"><i class="ti ti-books"></i></div>
+          <span class="text-secondary">Total books</span>
         </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card bg-success text-white border-0 shadow-sm">
-        <div class="card-body">
-          <div class="text-uppercase small fw-bold">Active Loans</div>
-          <div class="display-6 fw-bold">{{ borrowed_books_count }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card bg-warning text-dark border-0 shadow-sm">
-        <div class="card-body">
-          <div class="text-uppercase small fw-bold">Overdue Loans</div>
-          <div class="display-6 fw-bold">{{ overdue_count }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card bg-danger text-white border-0 shadow-sm">
-        <div class="card-body">
-          <div class="text-uppercase small fw-bold">Unpaid Fines</div>
-          <div class="display-6 fw-bold">${{ unpaid_fines_total }}</div>
-        </div>
+        <div class="fs-2 fw-bold lh-1">{{ total_books }}</div>
       </div>
     </div>
   </div>
-
-  <div class="btn-group mb-4">
-    <a href="{% url 'admin_app:manage_books' %}" class="btn btn-outline-dark">Manage Catalog</a>
-    <a href="{% url 'admin_app:manage_fines' %}" class="btn btn-outline-dark">Manage Fines</a>
-    <a href="{% url 'admin_app:monitor_users' %}" class="btn btn-outline-dark">Monitor Users</a>
+  <div class="col">
+    <div class="card card-lg h-100">
+      <div class="card-body d-flex flex-column gap-6">
+        <div class="d-flex align-items-center gap-3">
+          <div class="icon-shape icon-lg rounded-circle bg-success-subtle text-success"><i class="ti ti-book-download"></i></div>
+          <span class="text-secondary">Active loans</span>
+        </div>
+        <div class="fs-2 fw-bold lh-1">{{ borrowed_books_count }}</div>
+      </div>
+    </div>
   </div>
+  <div class="col">
+    <div class="card card-lg h-100">
+      <div class="card-body d-flex flex-column gap-6">
+        <div class="d-flex align-items-center gap-3">
+          <div class="icon-shape icon-lg rounded-circle bg-warning-subtle text-warning"><i class="ti ti-clock-exclamation"></i></div>
+          <span class="text-secondary">Overdue loans</span>
+        </div>
+        <div class="fs-2 fw-bold lh-1">{{ overdue_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card card-lg h-100">
+      <div class="card-body d-flex flex-column gap-6">
+        <div class="d-flex align-items-center gap-3">
+          <div class="icon-shape icon-lg rounded-circle bg-danger-subtle text-danger"><i class="ti ti-receipt-dollar"></i></div>
+          <span class="text-secondary">Unpaid fines</span>
+        </div>
+        <div class="fs-2 fw-bold lh-1">${{ unpaid_fines_total }}</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <div class="card shadow-sm border-0">
-    <div class="card-header bg-dark text-white fw-bold">Recent Borrow Activities</div>
+<div class="card card-lg">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+      <div>
+        <h2 class="h4 mb-1">Recent borrow activity</h2>
+        <p class="text-secondary small mb-0">The latest movement across your library.</p>
+      </div>
+      <a href="{% url 'admin_app:manage_books' %}" class="btn btn-outline-primary btn-sm">Manage books</a>
+    </div>
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
+        <thead>
           <tr>
             <th>User</th>
             <th>Book</th>
-            <th>Borrow Date</th>
-            <th>Due Date</th>
+            <th>Borrow date</th>
+            <th>Due date</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody>
-          {% for r in recent_records %}
+          {% for record in recent_records %}
             <tr>
-              <td>{{ r.user.email }}</td>
-              <td>{{ r.book.title }}</td>
-              <td>{{ r.borrow_date }}</td>
-              <td>{{ r.due_date }}</td>
-              <td><span class="badge bg-secondary">{{ r.get_status_display }}</span></td>
+              <td>{{ record.user.email }}</td>
+              <td class="fw-semibold">{{ record.book.title }}</td>
+              <td>{{ record.borrow_date }}</td>
+              <td>{{ record.due_date }}</td>
+              <td><span class="badge bg-primary-subtle text-primary">{{ record.get_status_display }}</span></td>
             </tr>
           {% empty %}
-            <tr><td colspan="5" class="text-center py-4 text-muted">No recent activity.</td></tr>
+            <tr><td colspan="5" class="text-center py-6 text-secondary">No recent activity.</td></tr>
           {% endfor %}
         </tbody>
       </table>

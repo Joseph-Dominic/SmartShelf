@@ -8,7 +8,11 @@ from django.views.generic import RedirectView
 from django.views.generic import TemplateView
 
 urlpatterns = [
-    path("", TemplateView.as_view(template_name="admin/base.html"), name="home"),
+    path(
+        "",
+        RedirectView.as_view(pattern_name="admin_app:librarian_dashboard", permanent=False),
+        name="home",
+    ),
     path(
         "about/",
         TemplateView.as_view(template_name="pages/about.html"),
