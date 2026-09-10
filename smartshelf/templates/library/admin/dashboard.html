@@ -17,7 +17,7 @@
       <div class="card bg-primary text-white border-0 shadow-sm">
         <div class="card-body">
           <div class="text-uppercase small fw-bold">Total Books</div>
-          <div class="display-6 fw-bold">{{ total_books }}</div>
+          <div class="display-6 fw-bold">{{ total_titles }}</div>
         </div>
       </div>
     </div>
@@ -25,7 +25,7 @@
       <div class="card bg-success text-white border-0 shadow-sm">
         <div class="card-body">
           <div class="text-uppercase small fw-bold">Active Loans</div>
-          <div class="display-6 fw-bold">{{ borrowed_books_count }}</div>
+          <div class="display-6 fw-bold">{{ active_loans_count }}</div>
         </div>
       </div>
     </div>
@@ -51,7 +51,27 @@
   <div class="btn-group mb-4">
     <a href="{% url 'library:manage_books' %}" class="btn btn-outline-dark">Manage Catalog</a>
     <a href="{% url 'library:manage_fines' %}" class="btn btn-outline-dark">Manage Fines</a>
-    <a href="{% url 'library:monitor_users' %}" class="btn btn-outline-dark">Monitor Users</a>
+  </div>
+
+  <!-- Quick Issue Form -->
+  <div class="card shadow-sm border-0 mb-4 bg-light">
+    <div class="card-body">
+      <h5 class="card-title fw-bold mb-3"><i class="bi bi-upc-scan"></i> Quick Checkout Desk</h5>
+      <form method="post" action="{% url 'library:issue_book' %}" class="row g-3 align-items-end">
+        {% csrf_token %}
+        <div class="col-md-5">
+          <label class="form-label text-muted small fw-bold">Borrower (Roll No / ID / Email)</label>
+          <input type="text" name="member_identifier" class="form-control" placeholder="e.g. UG-2024-01" required autofocus>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label text-muted small fw-bold">Book Barcode (Accession Number)</label>
+          <input type="text" name="accession_number" class="form-control" placeholder="e.g. CS-101-01" required>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100 fw-bold">Issue Item</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Recent Loan Activities -->
@@ -61,24 +81,45 @@
       <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
           <tr>
-            <th>User</th>
+            <th>Borrower</th>
+            <th>Member ID</th>
             <th>Book</th>
-            <th>Borrow Date</th>
+            <th>Barcode</th>
             <th>Due Date</th>
-            <th>Status</th>
+            <th>Overdue Days</th>
+            <th class="text-end">Action</th>
           </tr>
         </thead>
         <tbody>
-          {% for r in recent_records %}
+          {% for loan in recent_loans %}
             <tr>
-              <td>{{ r.user.email }}</td>
-              <td>{{ r.book.title }}</td>
-              <td>{{ r.borrow_date }}</td>
-              <td>{{ r.due_date }}</td>
-              <td><span class="badge bg-secondary">{{ r.get_status_display }}</span></td>
+              <td>{{ loan.user.email }}</td>
+              <td>{{ loan.user.member_id|default:"-" }}</td>
+              <td class="fw-bold">{{ loan.book_copy.book.title }}</td>
+              <td>{{ loan.book_copy.accession_number }}</td>
+              <td>
+                {% if loan.overdue_days > 0 %}
+                  <span class="text-danger fw-bold">{{ loan.due_date }}</span>
+                {% else %}
+                  {{ loan.due_date }}
+                {% endif %}
+              </td>
+              <td>
+                {% if loan.overdue_days > 0 %}
+                  <span class="badge bg-danger">{{ loan.overdue_days }} days</span>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <form method="post" action="{% url 'library:return_book' loan.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-success">Process Return</button>
+                </form>
+              </td>
             </tr>
           {% empty %}
-            <tr><td colspan="5" class="text-center py-4 text-muted">No recent activity.</td></tr>
+            <tr><td colspan="7" class="text-center py-4 text-muted">No recent activity.</td></tr>
           {% endfor %}
         </tbody>
       </table>

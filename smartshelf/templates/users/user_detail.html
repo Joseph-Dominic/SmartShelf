@@ -1,56 +1,100 @@
 {% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{{ user_obj.name|default:user_obj.email }} - Profile{% endblock title %}
 
 {% block content %}
-<div class="container py-4">
-  <div class="row">
-    <div class="col-md-4">
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body text-center">
-          <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
-            {{ user_obj.username|first|upper }}
+<div class="container px-4 py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Profile Details Card -->
+      <div class="card shadow border-0 rounded-3 mb-4">
+        <div class="card-header bg-dark text-white p-4 d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <!-- Safe Avatar Initial using |slice instead of |first -->
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold fs-4 me-3" style="width: 52px; height: 52px;">
+              {{ user_obj.name|default:user_obj.email|default:"U"|slice:":1"|upper }}
+            </div>
+            <div>
+              <h3 class="fw-bold mb-0 text-white">{{ user_obj.name|default:user_obj.email }}</h3>
+              <span class="badge bg-primary mt-1">{{ user_obj.get_role_display|default:"Member" }}</span>
+            </div>
           </div>
-          <h4>{{ user_obj.get_full_name|default:user_obj.username }}</h4>
-          <span class="badge bg-secondary mb-2">{{ user_obj.get_role_display }}</span>
-          <p class="text-muted small mb-1"><strong>ID:</strong> {{ user_obj.member_id|default:"N/A" }}</p>
-          <p class="text-muted small"><strong>Dept:</strong> {{ user_obj.department|default:"General" }}</p>
+          {% if user_obj == request.user %}
+            <a href="{% url 'users:update' %}" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-pencil me-1"></i>{% translate "Edit Profile" %}
+            </a>
+          {% endif %}
+        </div>
+
+        <div class="card-body p-4">
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="text-muted small text-uppercase fw-semibold">{% translate "Email Address" %}</label>
+              <div class="fs-6 fw-medium">{{ user_obj.email }}</div>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="text-muted small text-uppercase fw-semibold">{% translate "Roll No / Staff ID" %}</label>
+              <div class="fs-6 fw-medium">{{ user_obj.member_id|default:"Not Assigned" }}</div>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="text-muted small text-uppercase fw-semibold">{% translate "Department / Branch" %}</label>
+              <div class="fs-6 fw-medium">{{ user_obj.department|default:"General" }}</div>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="text-muted small text-uppercase fw-semibold">{% translate "Contact Phone" %}</label>
+              <div class="fs-6 fw-medium">{{ user_obj.phone_number|default:"Not Provided" }}</div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="col-md-8">
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-white">
-          <h5 class="card-title mb-0">Borrowing Privileges</h5>
+      <!-- Borrowing Policy Summary Card -->
+      <div class="card shadow border-0 rounded-3 mb-4">
+        <div class="card-header bg-light p-3">
+          <h5 class="mb-0 fw-bold"><i class="bi bi-shield-check text-success me-2"></i>{% translate "Borrowing Entitlements" %}</h5>
         </div>
-        <div class="card-body">
-          {% if has_overdue %}
-            <div class="alert alert-danger d-flex align-items-center mb-3">
-              <div>You currently have overdue books. Renewals and new borrows are locked.</div>
-            </div>
-          {% endif %}
-
-          <div class="row g-3 text-center">
-            <div class="col-sm-4">
-              <div class="p-3 border rounded">
-                <div class="text-muted small">Active / Max Books</div>
-                <div class="h4 mb-0 text-primary">{{ active_loans_count }} / {{ policy.max_books|default:3 }}</div>
+        <div class="card-body p-4">
+          <div class="row text-center g-3">
+            <div class="col-sm-3 col-6">
+              <div class="p-3 border rounded bg-white">
+                <div class="text-muted small">{% translate "Book Quota" %}</div>
+                <div class="fs-3 fw-bold text-primary">{{ policy.max_books|default:3 }}</div>
               </div>
             </div>
-            <div class="col-sm-4">
-              <div class="p-3 border rounded">
-                <div class="text-muted small">Loan Duration</div>
-                <div class="h4 mb-0 text-dark">{{ policy.loan_duration_days|default:14 }} Days</div>
+            <div class="col-sm-3 col-6">
+              <div class="p-3 border rounded bg-white">
+                <div class="text-muted small">{% translate "Loan Period" %}</div>
+                <div class="fs-3 fw-bold text-dark">{{ policy.loan_duration_days|default:14 }} <span class="fs-6 fw-normal text-muted">days</span></div>
               </div>
             </div>
-            <div class="col-sm-4">
-              <div class="p-3 border rounded">
-                <div class="text-muted small">Max Renewals</div>
-                <div class="h4 mb-0 text-dark">{{ policy.max_renewals|default:2 }} Times</div>
+            <div class="col-sm-3 col-6">
+              <div class="p-3 border rounded bg-white">
+                <div class="text-muted small">{% translate "Max Renewals" %}</div>
+                <div class="fs-3 fw-bold text-dark">{{ policy.max_renewals|default:2 }}</div>
+              </div>
+            </div>
+            <div class="col-sm-3 col-6">
+              <div class="p-3 border rounded bg-white">
+                <div class="text-muted small">{% translate "Overdue Fee" %}</div>
+                <div class="fs-3 fw-bold text-danger">₹{{ policy.daily_fine_rate|default:"5.00" }}<span class="fs-6 fw-normal text-muted">/day</span></div>
               </div>
             </div>
           </div>
-          <div class="mt-4 text-end">
-            <a href="{% url 'library:user_loans' %}" class="btn btn-outline-primary">View Borrowed Books</a>
+
+          <div class="d-flex justify-content-end mt-4">
+            {% if request.user.is_librarian or request.user.role == 'ADMIN' %}
+              <a href="{% url 'library:librarian_dashboard' %}" class="btn btn-primary">
+                <i class="bi bi-speedometer2 me-1"></i>{% translate "Go to Circulation Desk" %}
+              </a>
+            {% else %}
+              <a href="{% url 'library:user_loans' %}" class="btn btn-primary">
+                <i class="bi bi-book me-1"></i>{% translate "Go to My Loans" %}
+              </a>
+            {% endif %}
           </div>
         </div>
       </div>

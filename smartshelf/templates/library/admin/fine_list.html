@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% load static i18n %}
 
-{% block title %}Fine Management - SmartShelf Admin{% endblock %}
+{% block title %}{% translate "Fine Management - SmartShelf Admin" %}{% endblock %}
 
 {% block content %}
 <div class="container px-5 my-5">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="fw-bolder mb-1">Overdue Fine Collections</h2>
-      <p class="text-muted small mb-0">Track and settle fines accumulated from late returns.</p>
+      <h2 class="fw-bolder mb-1">{% translate "Overdue Fine Collections" %}</h2>
+      <p class="text-muted small mb-0">{% translate "Track and settle fines accumulated from late returns." %}</p>
     </div>
     <a href="{% url 'library:librarian_dashboard' %}" class="btn btn-outline-secondary btn-sm">
-      <i class="bi bi-arrow-left me-1"></i> Dashboard
+      <i class="bi bi-arrow-left me-1"></i> {% translate "Dashboard" %}
     </a>
   </div>
 
@@ -20,52 +20,98 @@
       <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
           <tr>
-            <th class="ps-4">Borrower</th>
-            <th>Book Title</th>
-            <th>Due Date</th>
-            <th>Return Date</th>
-            <th>Amount</th>
-            <th>Payment Status</th>
-            <th class="text-end pe-4">Action</th>
+            <th class="ps-4">{% translate "Borrower" %}</th>
+            <th>{% translate "Book Title & Barcode" %}</th>
+            <th>{% translate "Due Date" %}</th>
+            <th>{% translate "Return Date" %}</th>
+            <th>{% translate "Amount" %}</th>
+            <th>{% translate "Payment Status" %}</th>
+            <th class="text-end pe-4">{% translate "Action" %}</th>
           </tr>
         </thead>
         <tbody>
           {% for fine in fines %}
             <tr>
+              <!-- Borrower Details (Null-safe) -->
               <td class="ps-4">
-                <div class="fw-semibold">{{ fine.borrow_record.user.email }}</div>
-                <div class="text-muted small">{{ fine.borrow_record.user.name|default:"" }}</div>
+                {% if fine.loan and fine.loan.user %}
+                  <div class="fw-semibold">{{ fine.loan.user.email }}</div>
+                  <div class="text-muted small">{{ fine.loan.user.name|default:fine.loan.user.member_id|default:"" }}</div>
+                {% else %}
+                  <span class="text-muted fst-italic">{% translate "Unlinked / Legacy Record" %}</span>
+                {% endif %}
               </td>
-              <td>{{ fine.borrow_record.book.title }}</td>
-              <td><span class="text-danger small fw-semibold">{{ fine.borrow_record.due_date }}</span></td>
-              <td><span class="small text-muted">{{ fine.borrow_record.return_date|default:"Not returned" }}</span></td>
-              <td class="fw-bold">${{ fine.amount }}</td>
+
+              <!-- Book Title & Accession (Null-safe) -->
+              <td>
+                {% if fine.loan and fine.loan.book_copy %}
+                  <div class="fw-medium">{{ fine.loan.book_copy.book.title }}</div>
+                  <small class="badge bg-light text-dark border">{{ fine.loan.book_copy.accession_number }}</small>
+                {% else %}
+                  <span class="text-muted small">{% translate "Archived Loan" %}</span>
+                {% endif %}
+              </td>
+
+              <!-- Due Date -->
+              <td>
+                {% if fine.loan %}
+                  <span class="text-danger small fw-semibold">{{ fine.loan.due_date }}</span>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+
+              <!-- Return Date -->
+              <td>
+                {% if fine.loan %}
+                  <span class="small text-muted">{{ fine.loan.return_date|default:"Not returned" }}</span>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+
+              <!-- Amount -->
+              <td class="fw-bold">₹{{ fine.amount }}</td>
+
+              <!-- Status -->
               <td>
                 {% if fine.is_paid %}
                   <span class="badge bg-success-subtle text-success border border-success-subtle">
-                    Paid ({{ fine.paid_at|date:"M d, Y" }})
+                    <i class="bi bi-check2 me-1"></i>{% translate "Paid" %} ({{ fine.paid_at|date:"M d, Y" }})
                   </span>
+                  {% if fine.cleared_by %}
+                    <div class="text-muted" style="font-size: 0.75rem;">
+                      {% translate "Cleared by:" %} {{ fine.cleared_by.email }}
+                    </div>
+                  {% endif %}
                 {% else %}
                   <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
-                    Unpaid
+                    <i class="bi bi-clock-history me-1"></i>{% translate "Unpaid" %}
                   </span>
                 {% endif %}
               </td>
+
+              <!-- Action (CSRF-Protected POST Form) -->
               <td class="text-end pe-4">
                 {% if not fine.is_paid %}
-                  <a href="{% url 'library:mark_fine_paid' fine.id %}" class="btn btn-sm btn-success">
-                    <i class="bi bi-check-circle me-1"></i> Mark as Paid
-                  </a>
+                  <form method="post" action="{% url 'library:settle_fine' fine.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-success">
+                      <i class="bi bi-cash-coin me-1"></i> {% translate "Mark as Paid" %}
+                    </button>
+                  </form>
                 {% else %}
-                  <button class="btn btn-sm btn-light text-muted" disabled>Settled</button>
+                  <button class="btn btn-sm btn-light text-muted" disabled>
+                    <i class="bi bi-check-all me-1"></i>{% translate "Settled" %}
+                  </button>
                 {% endif %}
               </td>
             </tr>
           {% empty %}
             <tr>
               <td colspan="7" class="text-center py-5 text-muted">
-                <i class="bi bi-cash-coin fs-1 d-block mb-2"></i>
-                No fines on record.
+                <i class="bi bi-cash-coin fs-1 d-block mb-2 text-secondary"></i>
+                {% translate "No fines on record." %}
               </td>
             </tr>
           {% endfor %}

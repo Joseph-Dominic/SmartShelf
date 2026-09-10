@@ -300,5 +300,5 @@ SOCIALACCOUNT_FORMS = {"signup": "smartshelf.users.forms.UserSocialSignupForm"}
 # ------------------------------------------------------------------------------
 # config/settings/base.py
 ACCOUNT_FORMS = {
-    "signup": "smartshelf.users.forms.CustomUserSignupForm",
+    "signup": "smartshelf.users.forms.UserSignupForm",
 }
