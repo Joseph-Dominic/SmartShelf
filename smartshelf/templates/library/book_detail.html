@@ -14,7 +14,7 @@
       {% endif %}
     </div>
     <div class="col-lg-8">
-      <span class="badge bg-primary mb-2">{{ book.category.name|default:"General" }}</span>
+      <span class="badge bg-primary mb-2">{{ book.subject.name|default:"General" }}</span>
       <h2 class="fw-bolder">{{ book.title }}</h2>
       <p class="fs-5 text-muted">By {{ book.author.name }}</p>
       <div class="mb-3">

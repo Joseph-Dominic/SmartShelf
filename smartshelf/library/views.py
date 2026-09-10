@@ -168,6 +168,9 @@ def librarian_dashboard_view(request):
     unpaid_fines_sum = Fine.objects.filter(is_paid=False).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
     context = {
+        "total_books": Book.objects.count(),
+        "available_books": BookCopy.objects.filter(status=BookCopy.Status.AVAILABLE).count(),
+        "borrowed_books_count": active_loans.count(),
         "active_loans_count": active_loans.count(),
         "overdue_count": overdue_loans.count(),
         "unpaid_fines_total": unpaid_fines_sum,
@@ -176,7 +179,7 @@ def librarian_dashboard_view(request):
         "recent_loans": active_loans.order_by("-issue_date")[:10],
         "overdue_loans": overdue_loans[:10],
     }
-    return render(request, "library/admin/dashboard.html", context)
+    return render(request, "admin_app/dashboard.html", context)
 
 
 @librarian_required
@@ -190,7 +193,7 @@ def issue_book_copy_view(request):
             user = User.objects.filter(Q(member_id=member_id) | Q(email=member_id)).first()
             if not user:
                 messages.error(request, _(f"Borrower '{member_id}' not found."))
-                return render(request, "library/admin/dashboard.html", {"issue_form": form})
+                return render(request, "admin_app/dashboard.html", {"issue_form": form})
 
             # Check borrowing policy limits
             policy = BorrowingPolicy.objects.filter(role=user.role).first()
@@ -273,13 +276,13 @@ def manage_books_view(request):
             form.save()
             messages.success(request, _("Book title added to catalog."))
             return redirect("library:manage_books")
-    return render(request, "library/admin/book_manage.html", {"books": books, "form": form, "copy_form": copy_form})
+    return render(request, "admin_app/book_manage.html", {"books": books, "form": form, "copy_form": copy_form})
 
 
 @librarian_required
 def manage_fines_view(request):
     fines = Fine.objects.select_related("loan__user", "loan__book_copy__book", "cleared_by").order_by("-is_paid", "-loan__issue_date")
-    return render(request, "library/admin/fine_list.html", {"fines": fines})
+    return render(request, "admin_app/fine_list.html", {"fines": fines})
 
 
 @librarian_required

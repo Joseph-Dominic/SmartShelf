@@ -31,7 +31,7 @@
       <div class="col-lg-4 col-md-6 mb-4">
         <div class="card h-100 shadow-sm border-0">
           <div class="card-body p-4">
-            <span class="badge bg-secondary mb-2">{{ book.category.name|default:"General" }}</span>
+            <span class="badge bg-secondary mb-2">{{ book.subject.name|default:"General" }}</span>
             <h5 class="card-title fw-bold">{{ book.title }}</h5>
             <p class="text-muted small mb-2">By <strong>{{ book.author.name }}</strong></p>
             <p class="small text-secondary mb-3">ISBN: {{ book.isbn }}</p>

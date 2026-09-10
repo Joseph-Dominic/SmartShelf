@@ -15,6 +15,7 @@ urlpatterns = [
     # User management
     path("users/", include("smartshelf.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
+    path("admin-app/", include("smartshelf.admin_app.urls", namespace="admin_app")),
     # Library LMS application
     path("library/", include("smartshelf.library.urls", namespace="library")),
     # Root alias to prevent NoReverseMatch on un-namespaced calls
