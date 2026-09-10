@@ -154,20 +154,21 @@ def librarian_dashboard_view(request):
     overdue_loans = active_loans.filter(due_date__lt=today)
     unpaid_fines_sum = Fine.objects.filter(is_paid=False).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
-    return render(
-        request,
-        "library/admin/dashboard.html",
-        {
-            "active_loans_count": active_loans.count(),
-            "overdue_count": overdue_loans.count(),
-            "unpaid_fines_total": unpaid_fines_sum,
-            "total_titles": Book.objects.count(),
-            "total_copies": BookCopy.objects.count(),
-            "recent_loans": active_loans.order_by("-issue_date")[:10],
-            "overdue_loans": overdue_loans[:10],
-            "issue_form": IssueBookForm(),
-        },
-    )
+    context = {
+        "total_books": Book.objects.count(),
+        "available_books": BookCopy.objects.filter(status=BookCopy.Status.AVAILABLE).count(),
+        "borrowed_books_count": active_loans.count(),
+        "active_loans_count": active_loans.count(),
+        "overdue_count": overdue_loans.count(),
+        "unpaid_fines_total": unpaid_fines_sum,
+        "total_titles": Book.objects.count(),
+        "total_copies": BookCopy.objects.count(),
+        "recent_loans": active_loans.order_by("-issue_date")[:10],
+        "recent_records": active_loans.order_by("-issue_date")[:10],
+        "overdue_loans": overdue_loans[:10],
+        "issue_form": IssueBookForm(),
+    }
+    return render(request, "admin_app/dashboard.html", context)
 
 
 @librarian_required
@@ -307,7 +308,7 @@ def manage_fines_view(request):
     fines = Fine.objects.select_related("loan__user", "loan__book_copy__book", "cleared_by").order_by(
         "-is_paid", "-created_at"
     )
-    return render(request, "library/admin/fine_list.html", {"fines": fines})
+    return render(request, "admin_app/fine_list.html", {"fines": fines})
 
 
 @librarian_required
