@@ -14,6 +14,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from smartshelf.users.adapters import AccountAdapter
 from smartshelf.users.forms import UserAdminChangeForm
 from smartshelf.users.tests.factories import UserFactory
 from smartshelf.users.views import UserRedirectView
@@ -86,6 +87,22 @@ class TestUserRedirectView:
 
         view.request = request
         assert view.get_redirect_url() == f"/users/{user.pk}/"
+
+
+class TestAccountAdapter:
+    def test_admin_redirects_to_admin_dashboard(self, rf: RequestFactory):
+        request = rf.get("/")
+        request.user = UserFactory(is_staff=True)
+
+        assert AccountAdapter().get_login_redirect_url(request) == reverse(
+            "admin_app:librarian_dashboard",
+        )
+
+    def test_regular_user_redirects_to_loans(self, user: User, rf: RequestFactory):
+        request = rf.get("/")
+        request.user = user
+
+        assert AccountAdapter().get_login_redirect_url(request) == reverse("library:user_loans")
 
 
 class TestUserDetailView:

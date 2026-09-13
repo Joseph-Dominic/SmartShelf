@@ -1,14 +1,14 @@
-{% extends "admin/base.html" %}
+{% extends "base.html" %}
 {% load i18n allauth account %}
 
 {% block title %}{% translate "Sign In" %} - SmartShelf{% endblock title %}
 
-{% block extra_css %}
+{% block css %}
 <style>
-  .login-panel { max-width: 460px; margin: 3rem auto; }
+  .login-panel { max-width: 460px; margin: 4rem auto; }
   .login-panel .form-control { min-height: 48px; border-radius: 10px; }
 </style>
-{% endblock extra_css %}
+{% endblock css %}
 
 {% block content %}
 <div class="login-panel">

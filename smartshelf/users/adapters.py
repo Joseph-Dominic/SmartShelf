@@ -12,7 +12,7 @@ class AccountAdapter(DefaultAccountAdapter):
     def get_login_redirect_url(self, request: HttpRequest) -> str:
         user = request.user
         if user.is_authenticated and user.is_librarian:
-            return reverse("library:librarian_dashboard")
+            return reverse("admin_app:librarian_dashboard")
         return reverse("library:user_loans")
 
 
