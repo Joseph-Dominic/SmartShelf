@@ -16,7 +16,6 @@
               {{ user_obj.name|default:user_obj.email|default:"U"|slice:":1"|upper }}
             </div>
             <div>
-              <h3 class="fw-bold mb-0 text-white">{{ user_obj.name|default:user_obj.email }}</h3>
               <span class="badge bg-primary mt-1">{{ user_obj.get_role_display|default:"Member" }}</span>
             </div>
           </div>
