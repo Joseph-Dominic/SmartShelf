@@ -1,0 +1,354 @@
+{% extends "admin/base.html" %}
+{% load static i18n %}
+
+{% block title %}Manage Stock - {{ book.title }} - SmartShelf Admin{% endblock %}
+
+{% block content %}
+<div class="container px-4 px-lg-5 my-5">
+  <!-- Page Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <a href="{% url 'admin_app:manage_books' %}" class="btn btn-sm btn-outline-secondary py-1 px-2">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h2 class="fw-bolder mb-0">Manage Book Stock</h2>
+      </div>
+      <p class="text-muted small mb-0 ps-md-4">
+        Update inventory, manage barcodes, and adjust physical copies for <strong class="text-dark">{{ book.title }}</strong>
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'admin_app:book_update' book.pk %}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-pencil me-1"></i> Edit Book Info
+      </a>
+      <a href="{% url 'library:book_detail' book.pk %}" target="_blank" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-box-arrow-up-right me-1"></i> View in Catalog
+      </a>
+    </div>
+  </div>
+
+  <!-- Book Summary & Metric Cards -->
+  <div class="row g-3 mb-4">
+    <!-- Book Details Card -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+        <div class="d-flex gap-3">
+          {% if book.cover_image %}
+            <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" class="rounded shadow-sm" style="width: 70px; height: 100px; object-fit: cover;" />
+          {% else %}
+            <div class="bg-light text-secondary rounded d-flex align-items-center justify-content-center border" style="width: 70px; height: 100px;">
+              <i class="bi bi-book fs-3"></i>
+            </div>
+          {% endif %}
+          <div class="flex-grow-1 overflow-hidden">
+            <h5 class="fw-bold mb-1 text-truncate" title="{{ book.title }}">{{ book.title }}</h5>
+            <div class="text-muted small mb-1"><i class="bi bi-person me-1"></i>{{ book.author.name }}</div>
+            <div class="text-muted small mb-1"><i class="bi bi-upc me-1"></i>ISBN: {{ book.isbn }}</div>
+            <div>
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small">
+                {{ book.subject.name|default:"Unassigned" }}
+              </span>
+              {% if book.edition %}
+                <span class="badge bg-light text-dark border small">{{ book.edition }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="col-lg-8">
+      <div class="row g-3 h-100">
+        <div class="col-6 col-sm-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">Total Stock</div>
+            <div class="fs-2 fw-bold text-dark mt-1">{{ total_copies }}</div>
+            <div class="small text-muted">All copies</div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white border-start border-4 border-success">
+            <div class="text-muted small fw-semibold text-uppercase">Available</div>
+            <div class="fs-2 fw-bold text-success mt-1">{{ available_copies }}</div>
+            <div class="small text-success">On shelf</div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white border-start border-4 border-info">
+            <div class="text-muted small fw-semibold text-uppercase">Issued</div>
+            <div class="fs-2 fw-bold text-info mt-1">{{ issued_copies }}</div>
+            <div class="small text-muted">With borrowers</div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white border-start border-4 border-warning">
+            <div class="text-muted small fw-semibold text-uppercase">Maintenance</div>
+            <div class="fs-2 fw-bold text-warning mt-1">{{ maintenance_copies|add:lost_copies }}</div>
+            <div class="small text-muted">Unavailable</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Copies / Stock Management Section -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+      <ul class="nav nav-pills" id="stockActionTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active fw-semibold" id="quick-add-tab" data-bs-toggle="pill" data-bs-target="#quick-add-pane" type="button" role="tab">
+            <i class="bi bi-stack me-1"></i> Quick Stock Increment (Bulk Add)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-semibold" id="single-copy-tab" data-bs-toggle="pill" data-bs-target="#single-copy-pane" type="button" role="tab">
+            <i class="bi bi-upc-scan me-1"></i> Add Single Physical Copy
+          </button>
+        </li>
+      </ul>
+    </div>
+    <div class="card-body p-4">
+      <div class="tab-content" id="stockActionTabsContent">
+        <!-- Quick Bulk Add Form -->
+        <div class="tab-pane fade show active" id="quick-add-pane" role="tabpanel">
+          <form method="post" action="{% url 'admin_app:book_stock_add' book.pk %}" class="row g-3 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="mode" value="bulk" />
+
+            <div class="col-md-3">
+              <label for="id_quantity" class="form-label small fw-semibold text-secondary">Number of Copies to Add</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-plus-slash-minus"></i></span>
+                <input type="number" name="quantity" id="id_quantity" class="form-control" min="1" max="50" value="1" required />
+              </div>
+              <div class="form-text small text-muted">E.g., enter 3 to add 3 new copies.</div>
+            </div>
+
+            <div class="col-md-4">
+              <label for="id_bulk_shelf" class="form-label small fw-semibold text-secondary">Shelf Location</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-geo-alt"></i></span>
+                <input type="text" name="shelf_location" id="id_bulk_shelf" class="form-control" placeholder="e.g. Stack A - Shelf 2" />
+              </div>
+              <div class="form-text small text-muted">Applied to all added copies.</div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="p-2 bg-light rounded-3 text-muted small border">
+                <i class="bi bi-info-circle me-1"></i> Barcodes will be auto-generated starting from: <code class="fw-bold">{{ suggested_accession }}</code>
+              </div>
+            </div>
+
+            <div class="col-md-2">
+              <button type="submit" class="btn btn-success w-100 py-2 fw-semibold">
+                <i class="bi bi-plus-circle me-1"></i> Increase Stock
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Single Copy Form -->
+        <div class="tab-pane fade" id="single-copy-pane" role="tabpanel">
+          <form method="post" action="{% url 'admin_app:book_stock_add' book.pk %}" class="row g-3 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="mode" value="single" />
+
+            <div class="col-md-4">
+              <label for="id_accession_number" class="form-label small fw-semibold text-secondary">Accession / Barcode Number</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-barcode"></i></span>
+                <input type="text" name="accession_number" id="id_accession_number" class="form-control" value="{{ suggested_accession }}" required />
+              </div>
+              <div class="form-text small text-muted">Unique barcode sticker identifier.</div>
+            </div>
+
+            <div class="col-md-3">
+              <label for="id_single_shelf" class="form-label small fw-semibold text-secondary">Shelf Location</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-geo-alt"></i></span>
+                <input type="text" name="shelf_location" id="id_single_shelf" class="form-control" placeholder="e.g. Stack B - Shelf 1" />
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <label for="id_single_status" class="form-label small fw-semibold text-secondary">Initial Status</label>
+              <select name="status" id="id_single_status" class="form-select">
+                {% for value, label in status_choices %}
+                  {% if value != "ISSUED" and value != "RESERVED" %}
+                    <option value="{{ value }}" {% if value == "AVAILABLE" %}selected{% endif %}>{{ label }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-2">
+              <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                <i class="bi bi-plus-lg me-1"></i> Add Copy
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Physical Copies Table -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0">Physical Copies in Inventory ({{ copies|length }})</h5>
+      <span class="text-muted small">Manage shelf locations, status, or remove unissued copies</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4" style="width: 60px;">#</th>
+            <th>Accession / Barcode</th>
+            <th>Shelf Location</th>
+            <th>Current Status</th>
+            <th>Borrower / Loan Info</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for copy in copies %}
+            <tr>
+              <td class="ps-4 text-muted small">{{ forloop.counter }}</td>
+              <td>
+                <span class="fw-bold font-monospace text-dark">{{ copy.accession_number }}</span>
+              </td>
+              <td>
+                {% if copy.shelf_location %}
+                  <span class="text-secondary"><i class="bi bi-geo-alt me-1 text-muted"></i>{{ copy.shelf_location }}</span>
+                {% else %}
+                  <span class="text-muted fst-italic small">Not specified</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if copy.status == "AVAILABLE" %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                    <i class="bi bi-check-circle me-1"></i>Available
+                  </span>
+                {% elif copy.status == "ISSUED" %}
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                    <i class="bi bi-arrow-left-right me-1"></i>Issued
+                  </span>
+                {% elif copy.status == "MAINTENANCE" %}
+                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+                    <i class="bi bi-tools me-1"></i>Under Maintenance
+                  </span>
+                {% elif copy.status == "LOST" %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                    <i class="bi bi-x-circle me-1"></i>Lost
+                  </span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                    {{ copy.get_status_display }}
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if copy.active_loan %}
+                  <div class="small">
+                    <span class="fw-semibold text-dark">{{ copy.active_loan.user.name|default:copy.active_loan.user.email }}</span>
+                    {% if copy.active_loan.user.member_id %}
+                      <span class="text-muted">({{ copy.active_loan.user.member_id }})</span>
+                    {% endif %}
+                  </div>
+                  <div class="text-muted smaller">
+                    Due: {{ copy.active_loan.due_date|date:"M d, Y" }}
+                  </div>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td class="text-end pe-4">
+                <!-- Edit Copy Button -->
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary me-1"
+                  data-bs-toggle="modal"
+                  data-bs-target="#editCopyModal{{ copy.pk }}"
+                  title="Update shelf location or status"
+                >
+                  <i class="bi bi-pencil me-1"></i>Edit
+                </button>
+
+                <!-- Delete Copy Form -->
+                {% if copy.status == "ISSUED" or copy.active_loan %}
+                  <button type="button" class="btn btn-sm btn-outline-secondary disabled" title="Cannot delete while borrowed">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                {% else %}
+                  <form method="post" action="{% url 'admin_app:book_copy_delete' copy.pk %}" class="d-inline" onsubmit="return confirm('Are you sure you want to remove copy {{ copy.accession_number }}? This will decrease total stock.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete copy from inventory">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                {% endif %}
+
+                <!-- Modal for Editing Copy -->
+                <div class="modal fade text-start" id="editCopyModal{{ copy.pk }}" tabindex="-1" aria-labelledby="editCopyModalLabel{{ copy.pk }}" aria-hidden="true">
+                  <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow rounded-4">
+                      <form method="post" action="{% url 'admin_app:book_copy_update' copy.pk %}">
+                        {% csrf_token %}
+                        <div class="modal-header border-0 pb-0">
+                          <h5 class="modal-title fw-bold" id="editCopyModalLabel{{ copy.pk }}">
+                            <i class="bi bi-sliders me-1 text-primary"></i> Update Physical Copy
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-toggle="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                          <div class="mb-3">
+                            <label for="id_barcode_{{ copy.pk }}" class="form-label small fw-semibold text-secondary">Accession / Barcode Number</label>
+                            <input type="text" name="accession_number" id="id_barcode_{{ copy.pk }}" class="form-control font-monospace" value="{{ copy.accession_number }}" required />
+                          </div>
+                          <div class="mb-3">
+                            <label for="id_shelf_{{ copy.pk }}" class="form-label small fw-semibold text-secondary">Shelf Location</label>
+                            <input type="text" name="shelf_location" id="id_shelf_{{ copy.pk }}" class="form-control" value="{{ copy.shelf_location }}" placeholder="e.g. Rack C-4" />
+                          </div>
+                          <div class="mb-3">
+                            <label for="id_status_{{ copy.pk }}" class="form-label small fw-semibold text-secondary">Availability Status</label>
+                            <select name="status" id="id_status_{{ copy.pk }}" class="form-select" {% if copy.status == "ISSUED" %}disabled{% endif %}>
+                              {% for val, lbl in status_choices %}
+                                {% if val != "ISSUED" or copy.status == "ISSUED" %}
+                                  <option value="{{ val }}" {% if copy.status == val %}selected{% endif %}>{{ lbl }}</option>
+                                {% endif %}
+                              {% endfor %}
+                            </select>
+                            {% if copy.status == "ISSUED" %}
+                              <div class="form-text text-info small">
+                                <i class="bi bi-info-circle me-1"></i>This copy is currently loaned to a member. Status will reset to Available upon return.
+                              </div>
+                            {% endif %}
+                          </div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                          <button type="submit" class="btn btn-primary btn-sm px-3">Save Changes</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-5 text-muted">
+                <i class="bi bi-box-seam fs-1 d-block mb-2 text-secondary"></i>
+                <div class="fw-semibold">No physical copies registered for this book yet.</div>
+                <div class="small">Use the form above to add copies and establish stock.</div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

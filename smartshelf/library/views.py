@@ -266,7 +266,7 @@ def manage_books_view(request):
 
     return render(
         request,
-        "library/admin/book_manage.html",
+        "admin_app/book_manage.html",
         {"books": books, "form": book_form, "copy_form": copy_form},
     )
 
@@ -278,7 +278,7 @@ def book_create_view(request):
         book = form.save()
         messages.success(request, _(f"Created catalog entry for '{book.title}'."))
         return redirect("library:manage_books")
-    return render(request, "library/admin/book_form.html", {"form": form, "title": _("Add New Book")})
+    return render(request, "admin_app/book_form.html", {"form": form, "title": _("Add New Book")})
 
 
 @librarian_required
@@ -289,7 +289,7 @@ def book_update_view(request, pk):
         form.save()
         messages.success(request, _(f"Updated '{book.title}'."))
         return redirect("library:manage_books")
-    return render(request, "library/admin/book_form.html", {"form": form, "book": book, "title": _("Edit Book")})
+    return render(request, "admin_app/book_form.html", {"form": form, "book": book, "title": _("Edit Book")})
 
 
 @librarian_required
@@ -300,7 +300,7 @@ def book_delete_view(request, pk):
         book.delete()
         messages.success(request, _(f"Removed '{title}' from catalog."))
         return redirect("library:manage_books")
-    return render(request, "library/admin/confirm_delete.html", {"object": book})
+    return render(request, "admin_app/confirm_delete.html", {"object": book})
 
 
 @librarian_required
