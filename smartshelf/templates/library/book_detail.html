@@ -28,9 +28,12 @@
           {% if has_active_reservation %}
             <div class="alert alert-info">You have an active hold on this title</div>
           {% else %}
-            <a href="{% url 'library:place_reservation' book.pk %}" class="btn btn-warning btn-lg px-4">
-              <i class="bi bi-bookmark-plus"></i> Place Hold / Reserve
-            </a>
+            <form method="post" action="{% url 'library:place_reservation' book.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-warning btn-lg px-4 shadow-sm">
+                <i class="bi bi-bookmark-plus me-1"></i> Place Hold / Reserve
+              </button>
+            </form>
           {% endif %}
         {% else %}
           <div class="alert alert-success">Copies available on shelf. Visit the circulation desk with barcode to borrow.</div>

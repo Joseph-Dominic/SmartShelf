@@ -32,6 +32,7 @@
         <div class="accordion-body">
           <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
+            <input type="hidden" name="action" value="create_book">
             {{ form.as_p }}
             <button type="submit" class="btn btn-primary">Save Title</button>
           </form>
@@ -48,6 +49,7 @@
         <div class="accordion-body">
           <form method="post">
             {% csrf_token %}
+            <input type="hidden" name="action" value="create_copy">
             {{ copy_form.as_p }}
             <button type="submit" class="btn btn-success">Add Copy</button>
           </form>

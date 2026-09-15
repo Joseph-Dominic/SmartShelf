@@ -60,11 +60,18 @@ def book_detail_view(request, pk):
 
 
 @login_required
-@require_POST
 def place_reservation_view(request, pk):
     book = get_object_or_404(Book, pk=pk)
+    if request.method != "POST":
+        messages.info(request, _("To place a hold, please click the Reserve button on the book details page."))
+        return redirect("library:book_detail", pk=pk)
+
     if book.available_copies > 0:
         messages.warning(request, _("Copies are available on shelf. No reservation required."))
+        return redirect("library:book_detail", pk=pk)
+
+    if Loan.objects.filter(user=request.user, book_copy__book=book, status=Loan.Status.ACTIVE).exists():
+        messages.warning(request, _("You currently have an active loan for this title."))
         return redirect("library:book_detail", pk=pk)
 
     reservation, created = Reservation.objects.get_or_create(user=request.user, book=book, is_active=True)
@@ -76,11 +83,24 @@ def place_reservation_view(request, pk):
 
 
 @login_required
-@require_POST
 def cancel_reservation_view(request, pk):
+    if request.method != "POST":
+        messages.info(request, _("To cancel a hold, please use the cancel button in your account."))
+        return redirect("library:user_loans")
+
     reservation = get_object_or_404(Reservation, pk=pk, user=request.user, is_active=True)
     reservation.is_active = False
     reservation.save()
+
+    # Revert surplus RESERVED copy to AVAILABLE if active reservations are now fewer than reserved copies
+    active_reservations_count = Reservation.objects.filter(book=reservation.book, is_active=True).count()
+    reserved_copies = BookCopy.objects.filter(book=reservation.book, status=BookCopy.Status.RESERVED)
+    if reserved_copies.count() > active_reservations_count:
+        surplus_copy = reserved_copies.first()
+        if surplus_copy:
+            surplus_copy.status = BookCopy.Status.AVAILABLE
+            surplus_copy.save()
+
     messages.success(request, _("Reservation canceled."))
     return redirect("library:user_loans")
 
@@ -116,8 +136,11 @@ def user_loans_view(request):
 
 
 @login_required
-@require_POST
 def renew_loan_view(request, pk):
+    if request.method != "POST":
+        messages.info(request, _("To renew a loan, please use the renew button in your account."))
+        return redirect("library:user_loans")
+
     loan = get_object_or_404(Loan, pk=pk, user=request.user, status=Loan.Status.ACTIVE)
     policy = BorrowingPolicy.objects.filter(role=request.user.role).first()
     max_renewals = policy.max_renewals if policy else 2
@@ -172,8 +195,10 @@ def librarian_dashboard_view(request):
 
 
 @librarian_required
-@require_POST
 def issue_book_copy_view(request):
+    if request.method != "POST":
+        return redirect("library:librarian_dashboard")
+
     form = IssueBookForm(request.POST)
     if form.is_valid():
         member_id = form.cleaned_data["member_identifier"].strip()
@@ -201,8 +226,18 @@ def issue_book_copy_view(request):
                 return redirect("library:librarian_dashboard")
 
             if copy.status != BookCopy.Status.AVAILABLE:
-                reserved_for = Reservation.objects.filter(user=user, book=copy.book, is_active=True).first()
-                if not (copy.status == BookCopy.Status.RESERVED and reserved_for):
+                if copy.status == BookCopy.Status.RESERVED:
+                    user_res = Reservation.objects.filter(user=user, book=copy.book, is_active=True).first()
+                    if not user_res:
+                        messages.error(request, _(f"Copy {barcode} is reserved for another member on hold."))
+                        return redirect("library:librarian_dashboard")
+                    active_res_list = list(Reservation.objects.filter(book=copy.book, is_active=True).order_by("reserved_at"))
+                    reserved_copies_count = BookCopy.objects.filter(book=copy.book, status=BookCopy.Status.RESERVED).count()
+                    allowed_users = [r.user_id for r in active_res_list[:max(1, reserved_copies_count)]]
+                    if user.id not in allowed_users:
+                        messages.error(request, _(f"Copy {barcode} is on hold for a member earlier in the reservation queue."))
+                        return redirect("library:librarian_dashboard")
+                else:
                     messages.error(request, _(f"Copy {barcode} is currently {copy.get_status_display()}."))
                     return redirect("library:librarian_dashboard")
 
@@ -215,8 +250,10 @@ def issue_book_copy_view(request):
 
 
 @librarian_required
-@require_POST
 def return_book_copy_view(request, loan_id):
+    if request.method != "POST":
+        return redirect("library:librarian_dashboard")
+
     with transaction.atomic():
         loan = get_object_or_404(Loan.objects.select_for_update(), pk=loan_id, status=Loan.Status.ACTIVE)
         copy = BookCopy.objects.select_for_update().get(pk=loan.book_copy_id)
@@ -232,9 +269,14 @@ def return_book_copy_view(request, loan_id):
         else:
             messages.success(request, _(f"Returned '{copy.book.title}' successfully."))
 
-        pending = Reservation.objects.filter(book=copy.book, is_active=True).order_by("reserved_at").first()
-        if pending:
+        # Allocate to waitlist if pending reservations exist beyond already reserved copies
+        active_reservations = Reservation.objects.filter(book=copy.book, is_active=True).order_by("reserved_at")
+        active_count = active_reservations.count()
+        already_reserved_count = BookCopy.objects.filter(book=copy.book, status=BookCopy.Status.RESERVED).exclude(pk=copy.pk).count()
+
+        if already_reserved_count < active_count:
             copy.status = BookCopy.Status.RESERVED
+            pending = active_reservations[already_reserved_count]
             messages.info(request, _(f"Copy held for waitlisted member {pending.user.email}."))
         else:
             copy.status = BookCopy.Status.AVAILABLE
@@ -266,7 +308,7 @@ def manage_books_view(request):
 
     return render(
         request,
-        "library/admin/book_manage.html",
+        "admin_app/book_manage.html",
         {"books": books, "form": book_form, "copy_form": copy_form},
     )
 
@@ -278,7 +320,7 @@ def book_create_view(request):
         book = form.save()
         messages.success(request, _(f"Created catalog entry for '{book.title}'."))
         return redirect("library:manage_books")
-    return render(request, "library/admin/book_form.html", {"form": form, "title": _("Add New Book")})
+    return render(request, "admin_app/book_form.html", {"form": form, "title": _("Add New Book")})
 
 
 @librarian_required
@@ -289,7 +331,7 @@ def book_update_view(request, pk):
         form.save()
         messages.success(request, _(f"Updated '{book.title}'."))
         return redirect("library:manage_books")
-    return render(request, "library/admin/book_form.html", {"form": form, "book": book, "title": _("Edit Book")})
+    return render(request, "admin_app/book_form.html", {"form": form, "book": book, "title": _("Edit Book")})
 
 
 @librarian_required
@@ -300,20 +342,21 @@ def book_delete_view(request, pk):
         book.delete()
         messages.success(request, _(f"Removed '{title}' from catalog."))
         return redirect("library:manage_books")
-    return render(request, "library/admin/confirm_delete.html", {"object": book})
+    return render(request, "admin_app/confirm_delete.html", {"object": book})
 
 
 @librarian_required
 def manage_fines_view(request):
     fines = Fine.objects.select_related("loan__user", "loan__book_copy__book", "cleared_by").order_by(
-        "-is_paid", "-created_at"
+        "-is_paid", "-id"
     )
     return render(request, "admin_app/fine_list.html", {"fines": fines})
 
 
 @librarian_required
-@require_POST
 def settle_fine_view(request, fine_id):
+    if request.method != "POST":
+        return redirect("library:manage_fines")
     fine = get_object_or_404(Fine, pk=fine_id)
     fine.is_paid = True
     fine.paid_at = timezone.now()
@@ -333,7 +376,7 @@ def reports_view(request):
 
     return render(
         request,
-        "library/admin/reports.html",
+        "admin_app/reports.html",
         {
             "total_loans": total_loans,
             "overdue_count": overdue_count,
@@ -356,4 +399,4 @@ def user_monitor_view(request):
         )
         .order_by("-active_loans_count")
     )
-    return render(request, "library/admin/user_monitor.html", {"monitored_users": users})
+    return render(request, "admin_app/user_monitor.html", {"monitored_users": users})

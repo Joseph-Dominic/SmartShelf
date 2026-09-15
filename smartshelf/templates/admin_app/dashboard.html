@@ -60,9 +60,36 @@
           <div class="icon-shape icon-lg rounded-circle bg-danger-subtle text-danger"><i class="ti ti-receipt-dollar"></i></div>
           <span class="text-secondary">Unpaid fines</span>
         </div>
-        <div class="fs-2 fw-bold lh-1">${{ unpaid_fines_total }}</div>
+        <div class="fs-2 fw-bold lh-1">₹{{ unpaid_fines_total }}</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Quick Circulation Desk (Issue Book) -->
+<div class="card card-lg mb-6 shadow-sm border-0">
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <div class="icon-shape icon-md rounded-circle bg-primary-subtle text-primary"><i class="ti ti-barcode"></i></div>
+      <h2 class="h4 mb-0">Quick Circulation Desk (Issue Book)</h2>
+    </div>
+    <p class="text-secondary small mb-4">Checkout a physical book copy to a student or faculty member using barcode & member ID.</p>
+    <form method="post" action="{% url 'library:issue_book' %}" class="row g-3 align-items-end">
+      {% csrf_token %}
+      <div class="col-md-5">
+        <label class="form-label text-secondary small fw-semibold">Borrower (Roll No / Staff ID / Email)</label>
+        <input type="text" name="member_identifier" class="form-control" placeholder="e.g. UG202401 or student@univ.edu" required autofocus>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label text-secondary small fw-semibold">Book Barcode (Accession Number)</label>
+        <input type="text" name="accession_number" class="form-control" placeholder="e.g. CS-001-A" required>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100 fw-bold">
+          <i class="ti ti-book-upload me-1"></i> Issue Item
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -84,6 +111,7 @@
             <th>Borrow date</th>
             <th>Due date</th>
             <th>Status</th>
+            <th class="text-end">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -92,11 +120,29 @@
               <td>{{ record.user.email }}</td>
               <td class="fw-semibold">{{ record.book_copy.book.title }}</td>
               <td>{{ record.issue_date }}</td>
-              <td>{{ record.due_date }}</td>
+              <td>
+                {% if record.overdue_days > 0 %}
+                  <span class="text-danger fw-semibold">{{ record.due_date }} ({{ record.overdue_days }}d overdue)</span>
+                {% else %}
+                  {{ record.due_date }}
+                {% endif %}
+              </td>
               <td><span class="badge bg-primary-subtle text-primary">{{ record.get_status_display }}</span></td>
+              <td class="text-end">
+                {% if record.status == "ACTIVE" %}
+                  <form method="post" action="{% url 'library:return_book' record.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-success">
+                      <i class="ti ti-arrow-back-up me-1"></i>Process Return
+                    </button>
+                  </form>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
             </tr>
           {% empty %}
-            <tr><td colspan="5" class="text-center py-6 text-secondary">No recent activity.</td></tr>
+            <tr><td colspan="6" class="text-center py-6 text-secondary">No recent activity.</td></tr>
           {% endfor %}
         </tbody>
       </table>

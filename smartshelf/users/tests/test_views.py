@@ -86,7 +86,7 @@ class TestUserRedirectView:
         request.user = user
 
         view.request = request
-        assert view.get_redirect_url() == f"/users/{user.pk}/"
+        assert view.get_redirect_url() == reverse("library:user_loans")
 
 
 class TestAccountAdapter:

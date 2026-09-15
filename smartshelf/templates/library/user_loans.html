@@ -52,7 +52,10 @@
                 {% if loan.overdue_days > 0 %}
                   <button class="btn btn-sm btn-outline-secondary" disabled>Overdue - Please Return</button>
                 {% else %}
-                  <a href="{% url 'library:renew_loan' loan.id %}" class="btn btn-sm btn-outline-success">Renew Loan</a>
+                  <form method="post" action="{% url 'library:renew_loan' loan.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-success">Renew Loan</button>
+                  </form>
                 {% endif %}
               </td>
             </tr>
@@ -81,7 +84,10 @@
               <td class="fw-bold">{{ res.book.title }}</td>
               <td>{{ res.reserved_at|date:"M d, Y" }}</td>
               <td>
-                <a href="{% url 'library:cancel_reservation' res.id %}" class="btn btn-sm btn-danger">Cancel Hold</a>
+                <form method="post" action="{% url 'library:cancel_reservation' res.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-danger">Cancel Hold</button>
+                </form>
               </td>
             </tr>
           {% empty %}
