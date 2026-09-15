@@ -24,14 +24,16 @@
       <p class="lead mb-4">{{ book.description|default:"No synopsis available for this book." }}</p>
 
       {% if request.user.is_authenticated %}
-        {% if user_active_borrow %}
-          <div class="alert alert-info">You currently have an active loan for this book.</div>
-        {% elif book.is_available %}
-          <a href="{% url 'library:borrow_book' book.pk %}" class="btn btn-success btn-lg px-4">
-            <i class="bi bi-bookmark-plus"></i> Borrow Book (14 Days)
-          </a>
+        {% if book.available_copies == 0 %}
+          {% if has_active_reservation %}
+            <div class="alert alert-info">You have an active hold on this title</div>
+          {% else %}
+            <a href="{% url 'library:place_reservation' book.pk %}" class="btn btn-warning btn-lg px-4">
+              <i class="bi bi-bookmark-plus"></i> Place Hold / Reserve
+            </a>
+          {% endif %}
         {% else %}
-          <button class="btn btn-secondary btn-lg" disabled>Currently Unavailable</button>
+          <div class="alert alert-success">Copies available on shelf. Visit the circulation desk with barcode to borrow.</div>
         {% endif %}
       {% else %}
         <a href="{% url 'account_login' %}" class="btn btn-primary btn-lg">Log in to Borrow</a>

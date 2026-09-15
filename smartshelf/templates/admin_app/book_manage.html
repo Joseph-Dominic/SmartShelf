@@ -20,6 +20,42 @@
     </div>
   </div>
 
+  <!-- Forms Accordion -->
+  <div class="accordion mb-4 shadow-sm border-0 rounded-4" id="bookFormsAccordion">
+    <div class="accordion-item border-0">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed fw-bold bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBookForm">
+          <i class="bi bi-book me-2"></i> Add New Book Title
+        </button>
+      </h2>
+      <div id="collapseBookForm" class="accordion-collapse collapse" data-bs-parent="#bookFormsAccordion">
+        <div class="accordion-body">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Save Title</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="accordion-item border-0 border-top mt-1">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed fw-bold bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCopyForm">
+          <i class="bi bi-upc-scan me-2"></i> Add Physical Copy (Barcode)
+        </button>
+      </h2>
+      <div id="collapseCopyForm" class="accordion-collapse collapse" data-bs-parent="#bookFormsAccordion">
+        <div class="accordion-body">
+          <form method="post">
+            {% csrf_token %}
+            {{ copy_form.as_p }}
+            <button type="submit" class="btn btn-success">Add Copy</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">

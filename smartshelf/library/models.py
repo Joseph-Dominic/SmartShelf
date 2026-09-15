@@ -170,15 +170,29 @@ class Loan(models.Model):
         if self.overdue_days <= 0:
             return Decimal("0.00")
         user_role = getattr(self.user, "role", "STUDENT_UG")
+        if user_role == "ADMIN" or getattr(self.user, "is_superuser", False):
+            user_role = "STAFF"
+            
         policy = BorrowingPolicy.objects.filter(role=user_role).first()
-        rate = policy.daily_fine_rate if policy else Decimal("5.00")
+        if policy:
+            rate = policy.daily_fine_rate
+        else:
+            rate = Decimal("0.00") if user_role == "STAFF" else Decimal("5.00")
+            
         return Decimal(self.overdue_days) * rate
 
     def save(self, *args, **kwargs):
         if not self.due_date:
             user_role = getattr(self.user, "role", "STUDENT_UG")
+            if user_role == "ADMIN" or getattr(self.user, "is_superuser", False):
+                user_role = "STAFF"
+                
             policy = BorrowingPolicy.objects.filter(role=user_role).first()
-            duration = policy.loan_duration_days if policy else 14
+            if policy:
+                duration = policy.loan_duration_days
+            else:
+                duration = 90 if user_role == "STAFF" else 14
+                
             self.due_date = timezone.now().date() + timedelta(days=duration)
         super().save(*args, **kwargs)
 
