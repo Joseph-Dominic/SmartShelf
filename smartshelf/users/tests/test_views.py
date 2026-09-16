@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 
 from smartshelf.users.adapters import AccountAdapter
 from smartshelf.users.forms import UserAdminChangeForm
+from smartshelf.users.models import User
 from smartshelf.users.tests.factories import UserFactory
 from smartshelf.users.views import UserRedirectView
 from smartshelf.users.views import UserUpdateView
@@ -24,7 +25,6 @@ from smartshelf.users.views import user_detail_view
 if TYPE_CHECKING:
     from django.test import RequestFactory
 
-    from smartshelf.users.models import User
 
 pytestmark = pytest.mark.django_db
 
@@ -102,7 +102,8 @@ class TestAccountAdapter:
         request = rf.get("/")
         request.user = user
 
-        assert AccountAdapter().get_login_redirect_url(request) == reverse("library:user_loans")
+        expected_url = reverse("library:user_loans")
+        assert AccountAdapter().get_login_redirect_url(request) == expected_url
 
 
 class TestUserDetailView:
@@ -122,3 +123,56 @@ class TestUserDetailView:
         assert isinstance(response, HttpResponseRedirect)
         assert response.status_code == HTTPStatus.FOUND
         assert response.url == f"{login_url}?next=/fake-url/"
+
+
+class TestSignupView:
+    def test_signup_get_renders_all_fields(self, client):
+        response = client.get(reverse("account_signup"))
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode("utf-8")
+        assert 'name="name"' in content
+        assert 'name="email"' in content
+        assert 'name="role"' in content
+        assert 'name="member_id"' in content
+        assert 'name="department"' in content
+        assert 'name="phone_number"' in content
+        assert 'name="password1"' in content
+        assert 'name="password2"' in content
+
+    def test_signup_post_success(self, client):
+        data = {
+            "name": "Integration Student",
+            "email": "integration_student@example.com",
+            "role": User.Role.STUDENT_UG,
+            "member_id": "UG-2026-INT",
+            "department": "Engineering",
+            "phone_number": "1234567890",
+            "password1": "SecurePass!2026",
+            "password2": "SecurePass!2026",
+        }
+        response = client.post(reverse("account_signup"), data)
+        assert response.status_code == HTTPStatus.FOUND
+
+        user = User.objects.get(email="integration_student@example.com")
+        assert user.name == "Integration Student"
+        assert user.role == User.Role.STUDENT_UG
+        assert user.member_id == "UG-2026-INT"
+        assert user.department == "Engineering"
+        assert user.phone_number == "1234567890"
+
+    def test_signup_post_missing_name_fails(self, client):
+        data = {
+            "name": "",
+            "email": "noname_student@example.com",
+            "role": User.Role.STUDENT_UG,
+            "member_id": "UG-2026-NONAME",
+            "department": "Engineering",
+            "password1": "SecurePass!2026",
+            "password2": "SecurePass!2026",
+        }
+        response = client.post(reverse("account_signup"), data)
+        assert response.status_code == HTTPStatus.OK
+        assert not User.objects.filter(email="noname_student@example.com").exists()
+        assert "form" in response.context
+        assert "name" in response.context["form"].errors
+

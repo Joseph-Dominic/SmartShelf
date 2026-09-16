@@ -25,16 +25,27 @@ class UserAdminCreationForm(admin_forms.UserCreationForm):
 
 class UserSignupForm(SignupForm):
     ROLE_CHOICES = (
-        (User.Role.STUDENT_UG, _("Undergraduate Student (UG) — Quota: 3 Books / 14 Days")),
-        (User.Role.STUDENT_PG, _("Postgraduate Student (PG) — Quota: 5 Books / 21 Days")),
-        (User.Role.STAFF, _("Faculty / College Staff — Quota: 10 Books / 90 Days")),
+        (
+            User.Role.STUDENT_UG,
+            _("Undergraduate Student (UG) — Quota: 3 Books / 14 Days"),
+        ),
+        (
+            User.Role.STUDENT_PG,
+            _("Postgraduate Student (PG) — Quota: 5 Books / 21 Days"),
+        ),
+        (
+            User.Role.STAFF,
+            _("Faculty / College Staff — Quota: 10 Books / 90 Days"),
+        ),
     )
 
     name = forms.CharField(
         max_length=255,
         required=True,
         label=_("Full Name"),
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Alex Johnson"}),
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "e.g. Alex Johnson"},
+        ),
     )
     role = forms.ChoiceField(
         choices=ROLE_CHOICES,
@@ -46,20 +57,40 @@ class UserSignupForm(SignupForm):
         max_length=30,
         required=True,
         label=_("Roll No / Employee ID"),
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. UG-2024-101 or FAC-42"}),
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. UG-2024-101 or FAC-42",
+            },
+        ),
     )
     department = forms.CharField(
         max_length=100,
         required=True,
         label=_("Department / Program"),
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Computer Science"}),
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. Computer Science",
+            },
+        ),
     )
     phone_number = forms.CharField(
         max_length=15,
         required=False,
         label=_("Phone Number (Optional)"),
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "+91 9876543210"}),
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "+91 9876543210"},
+        ),
     )
+
+    def clean_email(self):
+        email = super().clean_email()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError(
+                _("A user is already registered with this email address."),
+            )
+        return email
 
     def clean_name(self):
         name = self.cleaned_data.get("name", "").strip()
@@ -78,7 +109,9 @@ class UserSignupForm(SignupForm):
         if not member_id:
             raise forms.ValidationError(_("Roll No / Employee ID is required."))
         if User.objects.filter(member_id__iexact=member_id).exists():
-            raise forms.ValidationError(_("This Roll No / Employee ID is already registered."))
+            raise forms.ValidationError(
+                _("This Roll No / Employee ID is already registered."),
+            )
         return member_id
 
     def clean_phone_number(self):
@@ -94,7 +127,7 @@ class UserSignupForm(SignupForm):
         user.save()
 
     def save(self, request):
-        """Standard form save override ensuring attributes persist across all allauth versions."""
+        """Form save override ensuring attributes persist across allauth versions."""
         user = super().save(request)
         user.name = self.cleaned_data["name"]
         user.role = self.cleaned_data["role"]

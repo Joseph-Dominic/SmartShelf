@@ -6,7 +6,14 @@
   <div class="row justify-content-center">
     <div class="col-lg-8">
       <div class="card shadow-sm border-0">
-        <div class="card-header bg-dark text-white fw-bold">{{ title }}</div>
+        <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+          <span>{{ title }}</span>
+          {% if form.instance.pk %}
+            <a href="{% url 'admin_app:book_stock' form.instance.pk %}" class="btn btn-sm btn-outline-light">
+              <i class="bi bi-boxes me-1"></i>Manage Stock ({{ form.instance.total_copies }} copies)
+            </a>
+          {% endif %}
+        </div>
         <div class="card-body p-4">
           <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
@@ -31,9 +38,18 @@
                 {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
               </div>
             {% endfor %}
-            <div class="d-flex justify-content-end gap-2 mt-4">
-              <a href="{% url 'admin_app:manage_books' %}" class="btn btn-outline-secondary">Cancel</a>
-              <button type="submit" class="btn btn-primary px-4">Save Book</button>
+            <div class="d-flex justify-content-between align-items-center mt-4">
+              <div>
+                {% if form.instance.pk %}
+                  <a href="{% url 'admin_app:book_stock' form.instance.pk %}" class="btn btn-outline-success">
+                    <i class="bi bi-boxes me-1"></i>Manage Stock ({{ form.instance.total_copies }} copies)
+                  </a>
+                {% endif %}
+              </div>
+              <div class="d-flex gap-2">
+                <a href="{% url 'admin_app:manage_books' %}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary px-4">Save Book</button>
+              </div>
             </div>
           </form>
         </div>

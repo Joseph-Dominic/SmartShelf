@@ -32,7 +32,7 @@
         <div class="accordion-body">
           <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <input type="hidden" name="action" value="create_book">
+            <input type="hidden" name="action" value="create_book" />
             {{ form.as_p }}
             <button type="submit" class="btn btn-primary">Save Title</button>
           </form>
@@ -49,7 +49,7 @@
         <div class="accordion-body">
           <form method="post">
             {% csrf_token %}
-            <input type="hidden" name="action" value="create_copy">
+            <input type="hidden" name="action" value="create_copy" />
             {{ copy_form.as_p }}
             <button type="submit" class="btn btn-success">Add Copy</button>
           </form>
@@ -94,17 +94,22 @@
                 </span>
               </td>
               <td>
-                {% if book.available_copies > 0 %}
-                  <span class="badge bg-success-subtle text-success border border-success-subtle">
-                    {{ book.available_copies }} / {{ book.total_copies }} Available
-                  </span>
-                {% else %}
-                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
-                    0 / {{ book.total_copies }} (Out of Stock)
-                  </span>
-                {% endif %}
+                <a href="{% url 'admin_app:book_stock' book.pk %}" class="text-decoration-none" title="Click to manage physical stock and copies">
+                  {% if book.available_copies > 0 %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                      <i class="bi bi-boxes me-1"></i>{{ book.available_copies }} / {{ book.total_copies }} Available
+                    </span>
+                  {% else %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                      <i class="bi bi-boxes me-1"></i>0 / {{ book.total_copies }} (Out of Stock)
+                    </span>
+                  {% endif %}
+                </a>
               </td>
               <td class="text-end pe-4">
+                <a href="{% url 'admin_app:book_stock' book.pk %}" class="btn btn-sm btn-outline-success me-1" title="Manage physical stock & copies">
+                  <i class="bi bi-boxes me-1"></i>Stock
+                </a>
                 <a href="{% url 'admin_app:book_update' book.pk %}" class="btn btn-sm btn-outline-primary me-1">
                   <i class="bi bi-pencil me-1"></i>Edit
                 </a>

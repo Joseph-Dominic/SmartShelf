@@ -79,5 +79,4 @@ INSTALLED_APPS += ["django_extensions"]
 # ------------------------------------------------------------------------------
 
 ACCOUNT_EMAIL_VERIFICATION = "none"
-ACCOUNT_AUTHENTICATION_METHOD = "email"
-ACCOUNT_EMAIL_REQUIRED = True
+

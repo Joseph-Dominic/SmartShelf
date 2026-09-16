@@ -290,7 +290,9 @@ ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_ADAPTER = "smartshelf.users.adapters.AccountAdapter"
 # https://docs.allauth.org/en/latest/account/forms.html
-ACCOUNT_FORMS = {"signup": "smartshelf.users.forms.UserSignupForm"}
+ACCOUNT_FORMS = {
+    "signup": "smartshelf.users.forms.UserSignupForm",
+}
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html
 SOCIALACCOUNT_ADAPTER = "smartshelf.users.adapters.SocialAccountAdapter"
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html
@@ -298,8 +300,4 @@ SOCIALACCOUNT_FORMS = {"signup": "smartshelf.users.forms.UserSocialSignupForm"}
 
 
 # Your stuff...
-# ------------------------------------------------------------------------------
-# config/settings/base.py
-ACCOUNT_FORMS = {
-    "signup": "smartshelf.users.forms.UserSignupForm",
-}
+# ------------------------------------------------------------------------------
