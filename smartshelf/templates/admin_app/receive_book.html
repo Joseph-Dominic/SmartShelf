@@ -1,0 +1,37 @@
+{% extends "admin/base.html" %}
+{% load static i18n %}
+
+{% block title %}Receive Book - SmartShelf Admin{% endblock %}
+
+{% block content %}
+<div class="container px-4 px-lg-5 my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7 col-xl-6">
+      <div class="mb-4">
+        <a href="{% url 'admin_app:librarian_dashboard' %}" class="btn btn-sm btn-outline-secondary mb-3">
+          <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+        <h2 class="fw-bolder mb-1">Receive borrowed book</h2>
+        <p class="text-muted mb-0">Enter the book ISBN to mark its active loan as received.</p>
+      </div>
+
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4 p-lg-5">
+          <form method="post">
+            {% csrf_token %}
+            <label for="id_isbn" class="form-label fw-semibold">Book ISBN</label>
+            <div class="input-group input-group-lg mb-2">
+              <span class="input-group-text bg-light"><i class="bi bi-upc-scan"></i></span>
+              <input type="text" name="isbn" id="id_isbn" class="form-control" value="{{ isbn|default:'' }}" maxlength="20" required autofocus placeholder="e.g. 978-0134494166" />
+            </div>
+            <div class="form-text mb-4">The ISBN identifies the title. If several copies of this title are borrowed, receive the specific copy from the circulation dashboard.</div>
+            <button type="submit" class="btn btn-success btn-lg w-100">
+              <i class="bi bi-check2-circle me-1"></i> Mark as received
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

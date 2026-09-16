@@ -6,14 +6,28 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Q, Sum
-from django.shortcuts import get_object_or_404, redirect, render
+from django.db import transaction
+from django.db.models import Count
+from django.db.models import Q
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404
+from django.shortcuts import redirect
+from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from smartshelf.library import views as library_views
-from smartshelf.library.forms import AuthorForm, BookForm, SubjectForm
-from smartshelf.library.models import Author, Book, Fine, Loan, Subject
+from smartshelf.library.forms import AuthorForm
+from smartshelf.library.forms import BookForm
+from smartshelf.library.forms import SubjectForm
+from smartshelf.library.models import Author
+from smartshelf.library.models import Book
+from smartshelf.library.models import BookCopy
+from smartshelf.library.models import Fine
+from smartshelf.library.models import Loan
+from smartshelf.library.models import Reservation
+from smartshelf.library.models import Subject
 
 User = get_user_model()
 
@@ -255,3 +269,258 @@ def monitor_users(request):
         active_loans=Count("loans", filter=Q(loans__status=Loan.Status.ACTIVE)),
     ).order_by("-date_joined")
     return render(request, "admin_app/user_monitor.html", {"monitored_users": users})
+
+
+@librarian_required
+def receive_book(request):
+    """Receive one active loan by the ISBN printed on the book."""
+    if request.method == "POST":
+        isbn = request.POST.get("isbn", "").strip()
+        book = Book.objects.filter(isbn__iexact=isbn).first() if isbn else None
+
+        if not book:
+            messages.error(request, "No book was found with that ISBN.")
+            return render(request, "admin_app/receive_book.html", {"isbn": isbn})
+
+        active_loans = list(
+            Loan.objects.filter(book_copy__book=book, status=Loan.Status.ACTIVE)
+            .select_related("user", "book_copy")
+        )
+        if not active_loans:
+            messages.error(request, f"'{book.title}' has no active loan to receive.")
+            return render(request, "admin_app/receive_book.html", {"isbn": isbn})
+        if len(active_loans) > 1:
+            messages.error(
+                request,
+                f"ISBN '{book.isbn}' matches {len(active_loans)} active loans. "
+                "Use the circulation dashboard to receive the correct copy.",
+            )
+            return render(request, "admin_app/receive_book.html", {"isbn": isbn})
+
+        with transaction.atomic():
+            loan = Loan.objects.select_for_update().select_related("book_copy__book").get(pk=active_loans[0].pk)
+            copy = BookCopy.objects.select_for_update().get(pk=loan.book_copy_id)
+            loan.status = Loan.Status.RETURNED
+            loan.return_date = timezone.now().date()
+            loan.save(update_fields=["status", "return_date"])
+
+            pending = Reservation.objects.filter(book=copy.book, is_active=True).order_by("reserved_at").first()
+            copy.status = BookCopy.Status.RESERVED if pending else BookCopy.Status.AVAILABLE
+            copy.save(update_fields=["status"])
+
+            if loan.overdue_days > 0:
+                fine_amount = loan.current_fine
+                Fine.objects.create(loan=loan, amount=fine_amount, is_paid=False)
+                messages.warning(request, f"Returned late. Overdue fine of ₹{fine_amount} assessed.")
+            else:
+                messages.success(request, f"Received '{copy.book.title}' successfully.")
+
+        return redirect("admin_app:receive_book")
+
+    return render(request, "admin_app/receive_book.html")
+
+
+def get_next_accession_number(book: Book) -> str:
+    """Generate the next unique accession/barcode number for a book."""
+    prefix = f"{book.isbn}-C"
+    existing_copies = BookCopy.objects.filter(accession_number__startswith=prefix)
+    max_num = 0
+    for copy in existing_copies:
+        suffix = copy.accession_number[len(prefix):]
+        if suffix.isdigit():
+            max_num = max(max_num, int(suffix))
+    if max_num > 0:
+        candidate = f"{prefix}{max_num + 1}"
+    else:
+        candidate = f"{prefix}{book.copies.count() + 1}"
+
+    counter = 1
+    while BookCopy.objects.filter(accession_number=candidate).exists():
+        counter += 1
+        candidate = f"{prefix}{counter}"
+    return candidate
+
+
+@librarian_required
+def book_stock_manage(request, pk):
+    """View and manage physical stock (copies) for a specific book."""
+    book = get_object_or_404(
+        Book.objects.select_related("author", "subject").prefetch_related("copies"),
+        pk=pk,
+    )
+    copies = list(book.copies.all().order_by("accession_number"))
+
+    active_loans_qs = Loan.objects.filter(
+        book_copy__book=book,
+        status=Loan.Status.ACTIVE,
+    ).select_related("user")
+    active_loans_by_copy = {loan.book_copy_id: loan for loan in active_loans_qs}
+
+    for copy in copies:
+        copy.active_loan = active_loans_by_copy.get(copy.id)
+
+    total_copies = len(copies)
+    available_copies = sum(
+        1 for c in copies if c.status == BookCopy.Status.AVAILABLE
+    )
+    issued_copies = sum(1 for c in copies if c.status == BookCopy.Status.ISSUED)
+    maintenance_copies = sum(
+        1 for c in copies if c.status == BookCopy.Status.MAINTENANCE
+    )
+    lost_copies = sum(1 for c in copies if c.status == BookCopy.Status.LOST)
+
+    suggested_accession = get_next_accession_number(book)
+
+    return render(
+        request,
+        "admin_app/book_stock.html",
+        {
+            "book": book,
+            "copies": copies,
+            "total_copies": total_copies,
+            "available_copies": available_copies,
+            "issued_copies": issued_copies,
+            "maintenance_copies": maintenance_copies,
+            "lost_copies": lost_copies,
+            "suggested_accession": suggested_accession,
+            "status_choices": BookCopy.Status.choices,
+        },
+    )
+
+
+@librarian_required
+@require_POST
+def book_stock_add(request, pk):
+    """Add physical copies to increase book stock."""
+    book = get_object_or_404(Book, pk=pk)
+    mode = request.POST.get("mode", "single")
+    shelf_location = request.POST.get("shelf_location", "").strip()
+
+    if mode == "bulk":
+        try:
+            quantity = int(request.POST.get("quantity", 1))
+        except (ValueError, TypeError):
+            quantity = 1
+        quantity = max(1, min(quantity, 50))
+
+        created_barcodes = []
+        for _ in range(quantity):
+            barcode = get_next_accession_number(book)
+            BookCopy.objects.create(
+                book=book,
+                accession_number=barcode,
+                shelf_location=shelf_location,
+                status=BookCopy.Status.AVAILABLE,
+            )
+            created_barcodes.append(barcode)
+
+        messages.success(
+            request,
+            f"Successfully added {quantity} new copies to '{book.title}'.",
+        )
+    else:
+        accession_number = request.POST.get("accession_number", "").strip()
+        status = request.POST.get("status", BookCopy.Status.AVAILABLE)
+        if not accession_number:
+            accession_number = get_next_accession_number(book)
+
+        if BookCopy.objects.filter(accession_number=accession_number).exists():
+            messages.error(
+                request,
+                f"A physical copy with barcode '{accession_number}' already exists.",
+            )
+            return redirect("admin_app:book_stock", pk=book.pk)
+
+        valid_statuses = [choice[0] for choice in BookCopy.Status.choices]
+        if status not in valid_statuses:
+            status = BookCopy.Status.AVAILABLE
+
+        copy = BookCopy.objects.create(
+            book=book,
+            accession_number=accession_number,
+            shelf_location=shelf_location,
+            status=status,
+        )
+        msg = f"Physical copy '{copy.accession_number}' added to '{book.title}'."
+        messages.success(request, msg)
+
+    return redirect("admin_app:book_stock", pk=book.pk)
+
+
+@librarian_required
+@require_POST
+def book_copy_update(request, pk):
+    """Update status, shelf location, or barcode of an individual copy."""
+    copy = get_object_or_404(BookCopy.objects.select_related("book"), pk=pk)
+    book = copy.book
+
+    new_accession = request.POST.get("accession_number", "").strip()
+    new_shelf_location = request.POST.get("shelf_location", "").strip()
+    new_status = request.POST.get("status")
+
+    if new_accession and new_accession != copy.accession_number:
+        barcode_in_use = (
+            BookCopy.objects.filter(accession_number=new_accession)
+            .exclude(pk=copy.pk)
+            .exists()
+        )
+        if barcode_in_use:
+            messages.error(
+                request, f"Barcode '{new_accession}' is already in use.",
+            )
+            return redirect("admin_app:book_stock", pk=book.pk)
+        copy.accession_number = new_accession
+
+    copy.shelf_location = new_shelf_location
+
+    has_active_loan = copy.loans.filter(status=Loan.Status.ACTIVE).exists()
+    valid_statuses = dict(BookCopy.Status.choices)
+
+    if new_status in valid_statuses:
+        if has_active_loan and new_status != BookCopy.Status.ISSUED:
+            messages.warning(
+                request,
+                f"Copy '{copy.accession_number}' is currently borrowed. "
+                "Return must be completed at circulation desk before changing status.",
+            )
+        elif not has_active_loan and new_status == BookCopy.Status.ISSUED:
+            messages.warning(
+                request,
+                "Copies cannot be marked as 'Issued' manually; "
+                "use circulation desk to loan to a borrower.",
+            )
+        else:
+            copy.status = new_status
+
+    copy.save()
+    messages.success(
+        request, f"Copy '{copy.accession_number}' updated successfully.",
+    )
+    return redirect("admin_app:book_stock", pk=book.pk)
+
+
+@librarian_required
+@require_POST
+def book_copy_delete(request, pk):
+    """Delete an unissued physical copy to decrease book stock."""
+    copy = get_object_or_404(BookCopy.objects.select_related("book"), pk=pk)
+    book_pk = copy.book.pk
+    barcode = copy.accession_number
+
+    is_borrowed = (
+        copy.status == BookCopy.Status.ISSUED
+        or copy.loans.filter(status=Loan.Status.ACTIVE).exists()
+    )
+    if is_borrowed:
+        messages.error(
+            request,
+            f"Cannot delete copy '{barcode}' because it is currently on active loan.",
+        )
+        return redirect("admin_app:book_stock", pk=book_pk)
+
+    copy.delete()
+    messages.success(
+        request, f"Physical copy '{barcode}' deleted. Stock decreased.",
+    )
+    return redirect("admin_app:book_stock", pk=book_pk)
+

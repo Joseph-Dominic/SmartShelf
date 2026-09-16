@@ -3,28 +3,278 @@
 
 {% block title %}{% translate "Register - SmartShelf" %}{% endblock title %}
 
+{% block css %}
+<style>
+  .signup-card {
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+  .input-group-text {
+    border-color: #dee2e6;
+  }
+  .form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+  }
+  .password-toggle-btn {
+    border-color: #dee2e6;
+    background-color: transparent;
+  }
+  .password-toggle-btn:hover {
+    background-color: #f8f9fa;
+  }
+</style>
+{% endblock css %}
+
 {% block content %}
-<div class="container px-4 py-5">
+<div class="container px-3 px-md-4 py-5">
   <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-      <div class="card shadow border-0 rounded-3">
+    <div class="col-12 col-lg-8 col-xl-7">
+      <div class="card signup-card shadow-sm border-0">
         <div class="card-body p-4 p-sm-5">
+          <!-- Header -->
           <div class="text-center mb-4">
-            <i class="bi bi-person-badge fs-1 text-primary"></i>
-            <h2 class="fw-bold mt-2">{% translate "Library Membership Registration" %}</h2>
-            <p class="text-muted small">{% translate "Sign up for UG, PG, or Faculty borrowing privileges" %}</p>
+            <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3" style="width: 56px; height: 56px;">
+              <i class="bi bi-person-vcard fs-2"></i>
+            </div>
+            <h2 class="fw-bold mb-1">{% translate "Library Membership Registration" %}</h2>
+            <p class="text-muted small mb-0">{% translate "Create your account for UG, PG, or Faculty borrowing privileges" %}</p>
           </div>
 
           <form class="signup" id="signup_form" method="post" action="{% url 'account_signup' %}">
             {% csrf_token %}
-            {{ form|crispy }}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger border-0 small py-2 px-3 mb-3 rounded-3" role="alert">
+                {% for error in form.non_field_errors %}
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+                    <span>{{ error }}</span>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            {% if form.errors and not form.non_field_errors %}
+              <div class="alert alert-danger border-0 small py-2 px-3 mb-3 rounded-3" role="alert">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-exclamation-circle-fill me-2 flex-shrink-0"></i>
+                  <span>{% translate "Please correct the highlighted fields below before submitting." %}</span>
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="row g-3">
+              <!-- Full Name -->
+              <div class="col-md-6">
+                <label for="id_name" class="form-label small fw-semibold text-secondary">
+                  {% translate "Full Name" %} <span class="text-danger">*</span>
+                </label>
+                <div class="input-group has-validation">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-person"></i></span>
+                  <input
+                    type="text"
+                    name="name"
+                    id="id_name"
+                    class="form-control bg-light {% if form.name.errors %}is-invalid{% endif %}"
+                    placeholder="e.g. Alex Johnson"
+                    value="{{ form.name.value|default:'' }}"
+                    required
+                    autofocus
+                  />
+                  {% for error in form.name.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Email -->
+              <div class="col-md-6">
+                <label for="id_email" class="form-label small fw-semibold text-secondary">
+                  {% translate "Email Address" %} <span class="text-danger">*</span>
+                </label>
+                <div class="input-group has-validation">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-envelope"></i></span>
+                  <input
+                    type="email"
+                    name="email"
+                    id="id_email"
+                    class="form-control bg-light {% if form.email.errors %}is-invalid{% endif %}"
+                    placeholder="name@example.com"
+                    value="{{ form.email.value|default:'' }}"
+                    required
+                  />
+                  {% for error in form.email.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Academic Role -->
+              <div class="col-md-6">
+                <label for="id_role" class="form-label small fw-semibold text-secondary">
+                  {% translate "Academic Role" %} <span class="text-danger">*</span>
+                </label>
+                <div class="input-group has-validation">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-mortarboard"></i></span>
+                  <select
+                    name="role"
+                    id="id_role"
+                    class="form-select bg-light {% if form.role.errors %}is-invalid{% endif %}"
+                    required
+                  >
+                    <option value="" {% if not form.role.value %}selected{% endif %} disabled>
+                      {% translate "Select your role" %}
+                    </option>
+                    {% for value, label in form.role.field.choices %}
+                      <option value="{{ value }}" {% if form.role.value == value %}selected{% endif %}>
+                        {{ label }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  {% for error in form.role.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Member ID -->
+              <div class="col-md-6">
+                <label for="id_member_id" class="form-label small fw-semibold text-secondary">
+                  {% translate "Roll No / Employee ID" %} <span class="text-danger">*</span>
+                </label>
+                <div class="input-group has-validation">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-card-text"></i></span>
+                  <input
+                    type="text"
+                    name="member_id"
+                    id="id_member_id"
+                    class="form-control bg-light {% if form.member_id.errors %}is-invalid{% endif %}"
+                    placeholder="e.g. UG-2024-101 or FAC-42"
+                    value="{{ form.member_id.value|default:'' }}"
+                    required
+                  />
+                  {% for error in form.member_id.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Department -->
+              <div class="col-md-6">
+                <label for="id_department" class="form-label small fw-semibold text-secondary">
+                  {% translate "Department / Program" %} <span class="text-danger">*</span>
+                </label>
+                <div class="input-group has-validation">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-building"></i></span>
+                  <input
+                    type="text"
+                    name="department"
+                    id="id_department"
+                    class="form-control bg-light {% if form.department.errors %}is-invalid{% endif %}"
+                    placeholder="e.g. Computer Science"
+                    value="{{ form.department.value|default:'' }}"
+                    required
+                  />
+                  {% for error in form.department.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Phone number -->
+              <div class="col-md-6">
+                <label for="id_phone_number" class="form-label small fw-semibold text-secondary">
+                  {% translate "Phone Number" %} <span class="fw-normal text-muted small">({% translate "Optional" %})</span>
+                </label>
+                <div class="input-group has-validation">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-telephone"></i></span>
+                  <input
+                    type="tel"
+                    name="phone_number"
+                    id="id_phone_number"
+                    class="form-control bg-light {% if form.phone_number.errors %}is-invalid{% endif %}"
+                    placeholder="+91 9876543210"
+                    value="{{ form.phone_number.value|default:'' }}"
+                  />
+                  {% for error in form.phone_number.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Password 1 -->
+              <div class="col-md-6">
+                <label for="id_password1" class="form-label small fw-semibold {% if form.password1.errors %}text-danger{% else %}text-secondary{% endif %}">
+                  {% translate "Password" %} <span class="text-danger">*</span>
+                </label>
+                <div class="input-group has-validation">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-lock"></i></span>
+                  <input
+                    type="password"
+                    name="password1"
+                    id="id_password1"
+                    class="form-control bg-light {% if form.password1.errors %}is-invalid{% endif %}"
+                    placeholder="{% translate "Create password" %}"
+                    required
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary password-toggle-btn text-muted"
+                    onclick="togglePasswordVisibility('id_password1', this)"
+                    title="{% translate "Toggle password visibility" %}"
+                    aria-label="{% translate "Toggle password visibility" %}"
+                  >
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  {% for error in form.password1.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Password 2 -->
+              <div class="col-md-6">
+                <label for="id_password2" class="form-label small fw-semibold {% if form.password2.errors %}text-danger{% else %}text-secondary{% endif %}">
+                  {% translate "Confirm Password" %} <span class="text-danger">*</span>
+                </label>
+                <div class="input-group has-validation">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-shield-lock"></i></span>
+                  <input
+                    type="password"
+                    name="password2"
+                    id="id_password2"
+                    class="form-control bg-light {% if form.password2.errors %}is-invalid{% endif %}"
+                    placeholder="{% translate "Repeat password" %}"
+                    required
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary password-toggle-btn text-muted"
+                    onclick="togglePasswordVisibility('id_password2', this)"
+                    title="{% translate "Toggle password visibility" %}"
+                    aria-label="{% translate "Toggle password visibility" %}"
+                  >
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  {% for error in form.password2.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            {% if form.password1.help_text %}
+              <div class="form-text small text-muted mt-2">
+                <i class="bi bi-info-circle me-1"></i>{{ form.password1.help_text|safe }}
+              </div>
+            {% endif %}
 
             {% if redirect_field_value %}
               <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
             {% endif %}
 
             <div class="d-grid mt-4">
-              <button class="btn btn-primary btn-lg shadow-sm" type="submit">
+              <button class="btn btn-primary btn-lg shadow-sm py-2 fw-semibold" type="submit">
                 <i class="bi bi-check2-circle me-1"></i>{% translate "Create Account" %}
               </button>
             </div>
@@ -33,7 +283,7 @@
           <div class="text-center mt-4 pt-3 border-top">
             <p class="small text-muted mb-0">
               {% translate "Already have an account?" %}
-              <a href="{% url 'account_login' %}" class="fw-semibold text-decoration-none">{% translate "Sign In" %}</a>
+              <a href="{% url 'account_login' %}" class="fw-semibold text-primary text-decoration-none">{% translate "Sign In" %}</a>
             </p>
           </div>
         </div>
@@ -42,3 +292,26 @@
   </div>
 </div>
 {% endblock content %}
+
+{% block javascript %}
+<script>
+  function togglePasswordVisibility(fieldId, btn) {
+    const input = document.getElementById(fieldId);
+    if (!input) return;
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      if (icon) {
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+      }
+    } else {
+      input.type = 'password';
+      if (icon) {
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+      }
+    }
+  }
+</script>
+{% endblock javascript %}
