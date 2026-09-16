@@ -24,22 +24,29 @@
       <p class="lead mb-4">{{ book.description|default:"No synopsis available for this book." }}</p>
 
       {% if request.user.is_authenticated %}
-        {% if book.available_copies == 0 %}
-          {% if has_active_reservation %}
-            <div class="alert alert-info">You have an active hold on this title</div>
-          {% else %}
-            <form method="post" action="{% url 'library:place_reservation' book.pk %}" class="d-inline">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-warning btn-lg px-4 shadow-sm">
-                <i class="bi bi-bookmark-plus me-1"></i> Place Hold / Reserve
-              </button>
-            </form>
-          {% endif %}
+        {% if user_active_borrow %}
+          <div class="alert alert-info">
+            You currently have an active loan for this title (Due: {{ active_loan.due_date }}).
+          </div>
+        {% elif user_active_hold %}
+          <div class="alert alert-info">You have an active hold on this title (Queue position: #{{ queue_position }}).</div>
+        {% elif book.available_copies > 0 %}
+          <form method="post" action="{% url 'library:borrow_book' book.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-lg px-4 shadow-sm">
+              <i class="bi bi-book me-1"></i> Borrow This Book
+            </button>
+          </form>
         {% else %}
-          <div class="alert alert-success">Copies available on shelf. Visit the circulation desk with barcode to borrow.</div>
+          <form method="post" action="{% url 'library:place_reservation' book.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning btn-lg px-4 shadow-sm">
+              <i class="bi bi-bookmark-plus me-1"></i> Place Hold / Reserve Book
+            </button>
+          </form>
         {% endif %}
       {% else %}
-        <a href="{% url 'account_login' %}" class="btn btn-primary btn-lg">Log in to Borrow</a>
+        <a href="{% url 'account_login' %}?next={{ request.path }}" class="btn btn-outline-primary btn-lg">Log in to Borrow</a>
       {% endif %}
     </div>
   </div>

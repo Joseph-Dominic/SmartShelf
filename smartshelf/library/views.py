@@ -10,12 +10,17 @@ from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.views.decorators.http import require_POST
 
 from .forms import BookCopyForm, BookForm, IssueBookForm
 from .models import Book, BookCopy, BorrowingPolicy, Fine, Loan, Reservation, Subject
 
 User = get_user_model()
+
+BORROWING_RULES = {
+    "STUDENT_UG": {"max_books": 3, "loan_days": 14},
+    "STUDENT_PG": {"max_books": 5, "loan_days": 21},
+    "STAFF": {"max_books": 10, "loan_days": 45},
+}
 
 
 def librarian_required(view_func):
@@ -53,28 +58,111 @@ def book_list_view(request):
 
 def book_detail_view(request, pk):
     book = get_object_or_404(Book.objects.select_related("author", "subject").prefetch_related("copies"), pk=pk)
-    has_active_reservation = False
+    active_loan = None
+    active_hold = None
+    queue_position = None
     if request.user.is_authenticated:
-        has_active_reservation = Reservation.objects.filter(user=request.user, book=book, is_active=True).exists()
-    return render(request, "library/book_detail.html", {"book": book, "has_active_reservation": has_active_reservation})
+        active_loan = (
+            Loan.objects.filter(user=request.user, book_copy__book=book, status=Loan.Status.ACTIVE)
+            .select_related("book_copy")
+            .first()
+        )
+        active_hold = Reservation.objects.filter(user=request.user, book=book, is_active=True).first()
+        if active_hold:
+            queue_position = Reservation.objects.filter(book=book, is_active=True).filter(
+                Q(reserved_at__lt=active_hold.reserved_at)
+                | Q(reserved_at=active_hold.reserved_at, pk__lte=active_hold.pk)
+            ).count()
+
+    return render(
+        request,
+        "library/book_detail.html",
+        {
+            "book": book,
+            "active_loan": active_loan,
+            "user_active_borrow": active_loan is not None,
+            "user_active_hold": active_hold is not None,
+            "queue_position": queue_position,
+        },
+    )
+
+
+@login_required
+def borrow_book_view(request, pk):
+    if request.method != "POST":
+        messages.info(request, _("To borrow a book, please use the Borrow This Book button."))
+        return redirect("library:book_detail", pk=pk)
+
+    rules = BORROWING_RULES.get(request.user.role)
+    if not rules:
+        messages.error(request, _("Self-service borrowing is available to students and faculty only."))
+        return redirect("library:book_detail", pk=pk)
+
+    due_date = timezone.now().date() + timedelta(days=rules["loan_days"])
+    with transaction.atomic():
+        # Serialise concurrent requests for both this patron and this title.
+        borrower = User.objects.select_for_update().get(pk=request.user.pk)
+        book = get_object_or_404(Book.objects.select_for_update(), pk=pk)
+
+        if Fine.objects.filter(loan__user=borrower, is_paid=False).exists():
+            messages.error(request, _("Clear outstanding fines before borrowing another book."))
+            return redirect("library:user_loans")
+
+        active_loans = Loan.objects.filter(user=borrower, status=Loan.Status.ACTIVE)
+        if active_loans.filter(book_copy__book=book).exists():
+            messages.info(request, _("You already have an active loan for this title."))
+            return redirect("library:book_detail", pk=pk)
+
+        if active_loans.count() >= rules["max_books"]:
+            messages.error(
+                request,
+                _(f"You have reached your borrowing limit of {rules['max_books']} active books."),
+            )
+            return redirect("library:user_loans")
+
+        copy = (
+            BookCopy.objects.select_for_update()
+            .filter(book=book, status=BookCopy.Status.AVAILABLE)
+            .order_by("pk")
+            .first()
+        )
+        if not copy:
+            messages.warning(request, _("No copies are currently available. You can place a hold instead."))
+            return redirect("library:book_detail", pk=pk)
+
+        copy.status = BookCopy.Status.ISSUED
+        copy.save(update_fields=["status"])
+        Loan.objects.create(
+            user=borrower,
+            book_copy=copy,
+            due_date=due_date,
+        )
+        Reservation.objects.filter(user=borrower, book=book, is_active=True).update(is_active=False)
+
+    messages.success(request, _(f"Borrowed '{book.title}'. It is due on {due_date}."))
+    return redirect("library:user_loans")
 
 
 @login_required
 def place_reservation_view(request, pk):
-    book = get_object_or_404(Book, pk=pk)
     if request.method != "POST":
         messages.info(request, _("To place a hold, please click the Reserve button on the book details page."))
         return redirect("library:book_detail", pk=pk)
 
-    if book.available_copies > 0:
-        messages.warning(request, _("Copies are available on shelf. No reservation required."))
-        return redirect("library:book_detail", pk=pk)
+    with transaction.atomic():
+        book = get_object_or_404(Book.objects.select_for_update(), pk=pk)
+        has_available_copy = BookCopy.objects.select_for_update().filter(
+            book=book, status=BookCopy.Status.AVAILABLE
+        ).exists()
+        if has_available_copy:
+            messages.warning(request, _("Copies are available on shelf. No reservation required."))
+            return redirect("library:book_detail", pk=pk)
 
-    if Loan.objects.filter(user=request.user, book_copy__book=book, status=Loan.Status.ACTIVE).exists():
-        messages.warning(request, _("You currently have an active loan for this title."))
-        return redirect("library:book_detail", pk=pk)
+        if Loan.objects.filter(user=request.user, book_copy__book=book, status=Loan.Status.ACTIVE).exists():
+            messages.warning(request, _("You currently have an active loan for this title."))
+            return redirect("library:book_detail", pk=pk)
 
-    reservation, created = Reservation.objects.get_or_create(user=request.user, book=book, is_active=True)
+        reservation, created = Reservation.objects.get_or_create(user=request.user, book=book, is_active=True)
     if created:
         messages.success(request, _("Reservation placed successfully."))
     else:
@@ -88,18 +176,22 @@ def cancel_reservation_view(request, pk):
         messages.info(request, _("To cancel a hold, please use the cancel button in your account."))
         return redirect("library:user_loans")
 
-    reservation = get_object_or_404(Reservation, pk=pk, user=request.user, is_active=True)
-    reservation.is_active = False
-    reservation.save()
+    with transaction.atomic():
+        reservation = get_object_or_404(
+            Reservation.objects.select_for_update(), pk=pk, user=request.user, is_active=True
+        )
+        book = Book.objects.select_for_update().get(pk=reservation.book_id)
+        reservation.is_active = False
+        reservation.save(update_fields=["is_active"])
 
-    # Revert surplus RESERVED copy to AVAILABLE if active reservations are now fewer than reserved copies
-    active_reservations_count = Reservation.objects.filter(book=reservation.book, is_active=True).count()
-    reserved_copies = BookCopy.objects.filter(book=reservation.book, status=BookCopy.Status.RESERVED)
-    if reserved_copies.count() > active_reservations_count:
-        surplus_copy = reserved_copies.first()
-        if surplus_copy:
-            surplus_copy.status = BookCopy.Status.AVAILABLE
-            surplus_copy.save()
+        # Revert surplus RESERVED copy to AVAILABLE if active reservations are now fewer than reserved copies.
+        active_reservations_count = Reservation.objects.filter(book=book, is_active=True).count()
+        reserved_copies = BookCopy.objects.select_for_update().filter(book=book, status=BookCopy.Status.RESERVED)
+        if reserved_copies.count() > active_reservations_count:
+            surplus_copy = reserved_copies.first()
+            if surplus_copy:
+                surplus_copy.status = BookCopy.Status.AVAILABLE
+                surplus_copy.save(update_fields=["status"])
 
     messages.success(request, _("Reservation canceled."))
     return redirect("library:user_loans")

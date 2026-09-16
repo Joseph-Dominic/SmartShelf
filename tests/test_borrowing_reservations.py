@@ -123,6 +123,54 @@ class TestBookReservation:
 
 @pytest.mark.django_db
 class TestBookLoanAndReturn:
+    def test_patron_can_borrow_available_book(self, client, student_user, sample_book, ug_policy):
+        copy = BookCopy.objects.create(book=sample_book, accession_number="CS-001-A", status=BookCopy.Status.AVAILABLE)
+        client.force_login(student_user)
+
+        response = client.post(reverse("library:borrow_book", kwargs={"pk": sample_book.pk}), follow=True)
+
+        assert response.status_code == 200
+        copy.refresh_from_db()
+        loan = Loan.objects.get(user=student_user, book_copy=copy, status=Loan.Status.ACTIVE)
+        assert copy.status == BookCopy.Status.ISSUED
+        assert loan.due_date == timezone.now().date() + timedelta(days=14)
+        assert sample_book.available_copies == 0
+
+    def test_patron_borrow_is_blocked_for_duplicate_title(self, client, student_user, sample_book, ug_policy):
+        issued_copy = BookCopy.objects.create(book=sample_book, accession_number="CS-001-A", status=BookCopy.Status.ISSUED)
+        available_copy = BookCopy.objects.create(book=sample_book, accession_number="CS-001-B", status=BookCopy.Status.AVAILABLE)
+        Loan.objects.create(user=student_user, book_copy=issued_copy, status=Loan.Status.ACTIVE)
+        client.force_login(student_user)
+
+        client.post(reverse("library:borrow_book", kwargs={"pk": sample_book.pk}), follow=True)
+
+        available_copy.refresh_from_db()
+        assert available_copy.status == BookCopy.Status.AVAILABLE
+        assert not Loan.objects.filter(user=student_user, book_copy=available_copy).exists()
+
+    def test_patron_borrow_is_blocked_by_unpaid_fine(self, client, student_user, sample_book, ug_policy):
+        old_copy = BookCopy.objects.create(book=sample_book, accession_number="CS-001-A", status=BookCopy.Status.ISSUED)
+        available_copy = BookCopy.objects.create(book=sample_book, accession_number="CS-001-B", status=BookCopy.Status.AVAILABLE)
+        old_loan = Loan.objects.create(user=student_user, book_copy=old_copy, status=Loan.Status.RETURNED)
+        Fine.objects.create(loan=old_loan, amount=Decimal("25.00"), is_paid=False)
+        client.force_login(student_user)
+
+        client.post(reverse("library:borrow_book", kwargs={"pk": sample_book.pk}), follow=True)
+
+        available_copy.refresh_from_db()
+        assert available_copy.status == BookCopy.Status.AVAILABLE
+
+    def test_book_detail_shows_hold_queue_position(self, client, student_user, second_student, sample_book):
+        BookCopy.objects.create(book=sample_book, accession_number="CS-001-A", status=BookCopy.Status.ISSUED)
+        Reservation.objects.create(user=second_student, book=sample_book, is_active=True)
+        Reservation.objects.create(user=student_user, book=sample_book, is_active=True)
+        client.force_login(student_user)
+
+        response = client.get(reverse("library:book_detail", kwargs={"pk": sample_book.pk}))
+
+        assert response.context["user_active_hold"]
+        assert response.context["queue_position"] == 2
+
     def test_issue_book_success(self, client, librarian_user, student_user, sample_book, ug_policy):
         copy = BookCopy.objects.create(book=sample_book, accession_number="CS-001-A", status=BookCopy.Status.AVAILABLE)
         client.force_login(librarian_user)

@@ -7,6 +7,7 @@ urlpatterns = [
     # Catalog
     path("", views.book_list_view, name="book_list"),
     path("books/<int:pk>/", views.book_detail_view, name="book_detail"),
+    path("books/<int:pk>/borrow/", views.borrow_book_view, name="borrow_book"),
     path("books/<int:pk>/reserve/", views.place_reservation_view, name="place_reservation"),
     path("reservations/<int:pk>/cancel/", views.cancel_reservation_view, name="cancel_reservation"),
 
