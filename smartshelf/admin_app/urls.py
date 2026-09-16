@@ -26,4 +26,5 @@ urlpatterns = [
     path("fines/<int:fine_id>/pay/", views.mark_fine_paid, name="mark_fine_paid"),
     path("reports/", views.reports_view, name="reports"),
     path("users/", views.monitor_users, name="monitor_users"),
+    path("receive/", views.receive_book, name="receive_book"),
 ]

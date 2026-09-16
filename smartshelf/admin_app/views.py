@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import Count
 from django.db.models import Q
 from django.db.models import Sum
@@ -25,6 +26,7 @@ from smartshelf.library.models import Book
 from smartshelf.library.models import BookCopy
 from smartshelf.library.models import Fine
 from smartshelf.library.models import Loan
+from smartshelf.library.models import Reservation
 from smartshelf.library.models import Subject
 
 User = get_user_model()
@@ -267,6 +269,55 @@ def monitor_users(request):
         active_loans=Count("loans", filter=Q(loans__status=Loan.Status.ACTIVE)),
     ).order_by("-date_joined")
     return render(request, "admin_app/user_monitor.html", {"monitored_users": users})
+
+
+@librarian_required
+def receive_book(request):
+    """Receive one active loan by the ISBN printed on the book."""
+    if request.method == "POST":
+        isbn = request.POST.get("isbn", "").strip()
+        book = Book.objects.filter(isbn__iexact=isbn).first() if isbn else None
+
+        if not book:
+            messages.error(request, "No book was found with that ISBN.")
+            return render(request, "admin_app/receive_book.html", {"isbn": isbn})
+
+        active_loans = list(
+            Loan.objects.filter(book_copy__book=book, status=Loan.Status.ACTIVE)
+            .select_related("user", "book_copy")
+        )
+        if not active_loans:
+            messages.error(request, f"'{book.title}' has no active loan to receive.")
+            return render(request, "admin_app/receive_book.html", {"isbn": isbn})
+        if len(active_loans) > 1:
+            messages.error(
+                request,
+                f"ISBN '{book.isbn}' matches {len(active_loans)} active loans. "
+                "Use the circulation dashboard to receive the correct copy.",
+            )
+            return render(request, "admin_app/receive_book.html", {"isbn": isbn})
+
+        with transaction.atomic():
+            loan = Loan.objects.select_for_update().select_related("book_copy__book").get(pk=active_loans[0].pk)
+            copy = BookCopy.objects.select_for_update().get(pk=loan.book_copy_id)
+            loan.status = Loan.Status.RETURNED
+            loan.return_date = timezone.now().date()
+            loan.save(update_fields=["status", "return_date"])
+
+            pending = Reservation.objects.filter(book=copy.book, is_active=True).order_by("reserved_at").first()
+            copy.status = BookCopy.Status.RESERVED if pending else BookCopy.Status.AVAILABLE
+            copy.save(update_fields=["status"])
+
+            if loan.overdue_days > 0:
+                fine_amount = loan.current_fine
+                Fine.objects.create(loan=loan, amount=fine_amount, is_paid=False)
+                messages.warning(request, f"Returned late. Overdue fine of ₹{fine_amount} assessed.")
+            else:
+                messages.success(request, f"Received '{copy.book.title}' successfully.")
+
+        return redirect("admin_app:receive_book")
+
+    return render(request, "admin_app/receive_book.html")
 
 
 def get_next_accession_number(book: Book) -> str:

@@ -42,6 +42,57 @@ def test_book() -> Book:
 class TestBookStockManagement:
     """Test suite for managing book stocks and physical copies."""
 
+    def test_receive_book_by_isbn_marks_loan_returned_and_copy_available(
+        self, client, admin_user, test_book,
+    ):
+        client.force_login(admin_user)
+        borrower = UserFactory.create()
+        copy = BookCopy.objects.create(
+            book=test_book,
+            accession_number="RECEIVE-01",
+            status=BookCopy.Status.ISSUED,
+        )
+        loan = Loan.objects.create(
+            user=borrower,
+            book_copy=copy,
+            due_date=timezone.now().date() + timezone.timedelta(days=14),
+            status=Loan.Status.ACTIVE,
+        )
+
+        url = reverse("admin_app:receive_book")
+        response = client.post(url, {"isbn": test_book.isbn}, follow=True)
+
+        assert response.status_code == HTTPStatus.OK
+        loan.refresh_from_db()
+        copy.refresh_from_db()
+        assert loan.status == Loan.Status.RETURNED
+        assert loan.return_date == timezone.now().date()
+        assert copy.status == BookCopy.Status.AVAILABLE
+
+    def test_receive_book_by_isbn_rejects_ambiguous_active_loans(
+        self, client, admin_user, test_book,
+    ):
+        client.force_login(admin_user)
+        borrower = UserFactory.create()
+        for accession_number in ("RECEIVE-02", "RECEIVE-03"):
+            copy = BookCopy.objects.create(
+                book=test_book,
+                accession_number=accession_number,
+                status=BookCopy.Status.ISSUED,
+            )
+            Loan.objects.create(
+                user=borrower,
+                book_copy=copy,
+                due_date=timezone.now().date() + timezone.timedelta(days=14),
+                status=Loan.Status.ACTIVE,
+            )
+
+        url = reverse("admin_app:receive_book")
+        response = client.post(url, {"isbn": test_book.isbn})
+
+        assert response.status_code == HTTPStatus.OK
+        assert Loan.objects.filter(book_copy__book=test_book, status=Loan.Status.ACTIVE).count() == 2
+
     def test_librarian_can_view_stock_page(self, client, admin_user, test_book):
         client.force_login(admin_user)
         BookCopy.objects.create(
