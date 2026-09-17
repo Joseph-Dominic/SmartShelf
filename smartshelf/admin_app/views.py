@@ -273,7 +273,7 @@ def monitor_users(request):
 
 @librarian_required
 def receive_book(request):
-    """Receive one active loan by the ISBN printed on the book."""
+    """Receive one active loan selected from the ISBN's active loans."""
     if request.method == "POST":
         isbn = request.POST.get("isbn", "").strip()
         book = Book.objects.filter(isbn__iexact=isbn).first() if isbn else None
@@ -289,16 +289,33 @@ def receive_book(request):
         if not active_loans:
             messages.error(request, f"'{book.title}' has no active loan to receive.")
             return render(request, "admin_app/receive_book.html", {"isbn": isbn})
-        if len(active_loans) > 1:
-            messages.error(
+
+        selected_loan_id = request.POST.get("loan_id")
+        if len(active_loans) > 1 and not selected_loan_id:
+            messages.info(request, "Select the borrower and physical copy being returned.")
+            return render(
                 request,
-                f"ISBN '{book.isbn}' matches {len(active_loans)} active loans. "
-                "Use the circulation dashboard to receive the correct copy.",
+                "admin_app/receive_book.html",
+                {"isbn": isbn, "book": book, "active_loans": active_loans},
             )
-            return render(request, "admin_app/receive_book.html", {"isbn": isbn})
+
+        try:
+            loan_id = int(selected_loan_id or active_loans[0].pk)
+        except (TypeError, ValueError):
+            messages.error(request, "Please select a valid active loan.")
+            return render(
+                request,
+                "admin_app/receive_book.html",
+                {"isbn": isbn, "book": book, "active_loans": active_loans},
+            )
 
         with transaction.atomic():
-            loan = Loan.objects.select_for_update().select_related("book_copy__book").get(pk=active_loans[0].pk)
+            loan = get_object_or_404(
+                Loan.objects.select_for_update().select_related("book_copy__book"),
+                pk=loan_id,
+                status=Loan.Status.ACTIVE,
+                book_copy__book__isbn__iexact=isbn,
+            )
             copy = BookCopy.objects.select_for_update().get(pk=loan.book_copy_id)
             loan.status = Loan.Status.RETURNED
             loan.return_date = timezone.now().date()

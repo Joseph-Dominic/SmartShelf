@@ -130,11 +130,13 @@
                     <div class="fw-semibold text-truncate" style="max-width: 180px;">{{ request.user.email }}</div>
                   </li>
                   <li><hr class="dropdown-divider" /></li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'users:detail' request.user.pk %}">
-                      <i class="bi bi-person-lines-fill me-2"></i>{% translate "Borrowing Limits & Profile" %}
-                    </a>
-                  </li>
+                  {% if not request.user.is_librarian and request.user.role != 'ADMIN' and not request.user.is_superuser %}
+                    <li>
+                      <a class="dropdown-item" href="{% url 'users:detail' request.user.pk %}">
+                        <i class="bi bi-person-lines-fill me-2"></i>{% translate "Borrowing Limits & Profile" %}
+                      </a>
+                    </li>
+                  {% endif %}
                   {% if not request.user.is_librarian and request.user.role != 'ADMIN' and not request.user.is_superuser %}
                     <li>
                       <a class="dropdown-item" href="{% url 'library:user_loans' %}">

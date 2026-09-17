@@ -73,25 +73,37 @@ class TestBookStockManagement:
         self, client, admin_user, test_book,
     ):
         client.force_login(admin_user)
-        borrower = UserFactory.create()
-        for accession_number in ("RECEIVE-02", "RECEIVE-03"):
+        borrowers = [UserFactory.create(), UserFactory.create()]
+        loans = []
+        for borrower, accession_number in zip(borrowers, ("RECEIVE-02", "RECEIVE-03")):
             copy = BookCopy.objects.create(
                 book=test_book,
                 accession_number=accession_number,
                 status=BookCopy.Status.ISSUED,
             )
-            Loan.objects.create(
+            loans.append(Loan.objects.create(
                 user=borrower,
                 book_copy=copy,
                 due_date=timezone.now().date() + timezone.timedelta(days=14),
                 status=Loan.Status.ACTIVE,
-            )
+            ))
 
         url = reverse("admin_app:receive_book")
         response = client.post(url, {"isbn": test_book.isbn})
 
         assert response.status_code == HTTPStatus.OK
-        assert Loan.objects.filter(book_copy__book=test_book, status=Loan.Status.ACTIVE).count() == 2
+        assert borrowers[0].email.encode() in response.content
+        assert borrowers[1].email.encode() in response.content
+        assert b"RECEIVE-02" in response.content
+        assert b"RECEIVE-03" in response.content
+
+        response = client.post(url, {"isbn": test_book.isbn, "loan_id": loans[1].pk}, follow=True)
+
+        assert response.status_code == HTTPStatus.OK
+        loans[0].refresh_from_db()
+        loans[1].refresh_from_db()
+        assert loans[0].status == Loan.Status.ACTIVE
+        assert loans[1].status == Loan.Status.RETURNED
 
     def test_librarian_can_view_stock_page(self, client, admin_user, test_book):
         client.force_login(admin_user)
@@ -110,6 +122,9 @@ class TestBookStockManagement:
         assert "Clean Architecture" in content
         assert "978-0134494166-C1" in content
         assert "Stack A-1" in content
+        assert admin_user.email in content
+        assert "Jitu Chauhan" not in content
+        assert "Borrowing Limits &amp; Profile" not in content
 
     def test_anonymous_and_student_access_restricted(self, client, test_book):
         url = reverse("admin_app:book_stock", kwargs={"pk": test_book.pk})
