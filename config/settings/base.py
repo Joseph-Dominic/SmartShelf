@@ -286,7 +286,7 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 # https://docs.allauth.org/en/latest/account/configuration.html
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_EMAIL_VERIFICATION = env.str("DJANGO_ACCOUNT_EMAIL_VERIFICATION", default="none")
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_ADAPTER = "smartshelf.users.adapters.AccountAdapter"
 # https://docs.allauth.org/en/latest/account/forms.html
