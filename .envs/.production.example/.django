@@ -1,0 +1,28 @@
+# General
+# ------------------------------------------------------------------------------
+DJANGO_SETTINGS_MODULE=config.settings.production
+# Generate a secret key with: python -c "import secrets; print(secrets.token_urlsafe(50))"
+DJANGO_SECRET_KEY=CHANGE_ME_SECRET_KEY
+DJANGO_ADMIN_URL=admin/
+# Comma-separated list of allowed hosts (IP address or domain)
+DJANGO_ALLOWED_HOSTS=*
+# CSRF trusted origins for form submissions and admin login
+DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost,http://127.0.0.1
+
+# Security
+# Set to False when hosting over plain HTTP (no domain / raw IP).
+# Set to True when you connect a domain with HTTPS/SSL.
+DJANGO_SECURE_SSL_REDIRECT=False
+
+# Email
+# ------------------------------------------------------------------------------
+DJANGO_DEFAULT_FROM_EMAIL=SmartShelf <noreply@localhost>
+DJANGO_SERVER_EMAIL=SmartShelf Server <server@localhost>
+
+# Cache / Redis
+# ------------------------------------------------------------------------------
+REDIS_URL=redis://redis:6379/0
+
+# Docker
+USE_DOCKER=yes
+IPYTHONDIR=/app/.ipython

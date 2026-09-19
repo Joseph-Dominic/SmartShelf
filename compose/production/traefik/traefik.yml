@@ -5,48 +5,64 @@ entryPoints:
   web:
     # http
     address: ':80'
-    http:
-      # https://doc.traefik.io/traefik/routing/entrypoints/#entrypoint
-      redirections:
-        entryPoint:
-          to: web-secure
+    # NOTE: When you attach a custom domain with SSL later, uncomment the redirection below:
+    # http:
+    #   redirections:
+    #     entryPoint:
+    #       to: web-secure
 
   web-secure:
     # https
     address: ':443'
 
-certificatesResolvers:
-  letsencrypt:
-    # https://doc.traefik.io/traefik/https/acme/#lets-encrypt
-    acme:
-      email: 'josephdominic0023@gmail.com'
-      storage: /etc/traefik/acme/acme.json
-      # https://doc.traefik.io/traefik/https/acme/#httpchallenge
-      httpChallenge:
-        entryPoint: web
+# --- SSL / Let's Encrypt (Uncomment when you connect a custom domain later) ---
+# certificatesResolvers:
+#   letsencrypt:
+#     acme:
+#       email: 'josephdominic0023@gmail.com'
+#       storage: /etc/traefik/acme/acme.json
+#       httpChallenge:
+#         entryPoint: web
 
 http:
   routers:
-    web-secure-router:
-      rule: 'Host(`localhost`)'
+    # --- HTTP Routing (Works immediately with any IP address or host) ---
+    web-router:
+      rule: 'PathPrefix(`/`)'
       entryPoints:
-        - web-secure
+        - web
       middlewares:
         - csrf
       service: django
-      tls:
-        # https://doc.traefik.io/traefik/routing/routers/#certresolver
-        certResolver: letsencrypt
 
     web-media-router:
-      rule: 'Host(`localhost`) && PathPrefix(`/media/`)'
+      rule: 'PathPrefix(`/media/`)'
       entryPoints:
-        - web-secure
+        - web
       middlewares:
         - csrf
       service: django-media
-      tls:
-        certResolver: letsencrypt
+
+    # --- HTTPS Routing (Uncomment when you connect a custom domain later) ---
+    # web-secure-router:
+    #   rule: 'Host(`yourdomain.com`)'
+    #   entryPoints:
+    #     - web-secure
+    #   middlewares:
+    #     - csrf
+    #   service: django
+    #   tls:
+    #     certResolver: letsencrypt
+    #
+    # web-media-secure-router:
+    #   rule: 'Host(`yourdomain.com`) && PathPrefix(`/media/`)'
+    #   entryPoints:
+    #     - web-secure
+    #   middlewares:
+    #     - csrf
+    #   service: django-media
+    #   tls:
+    #     certResolver: letsencrypt
 
   middlewares:
     csrf:

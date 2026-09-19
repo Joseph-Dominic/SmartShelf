@@ -275,3 +275,4 @@ smartshelf/media/
 .env
 .envs/*
 !.envs/.local/
+!.envs/.production.example/

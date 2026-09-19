@@ -1,0 +1,8 @@
+# PostgreSQL
+# ------------------------------------------------------------------------------
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=smartshelf
+POSTGRES_USER=smartshelf_user
+# Generate a secure password
+POSTGRES_PASSWORD=CHANGE_ME_STRONG_PASSWORD
