@@ -6,10 +6,14 @@
 {% block extra_css %}
   <style>
     .book-catalog-table {
-      min-width: 1100px;
+      min-width: 1290px;
+      table-layout: fixed;
     }
 
-    .book-catalog-table .book-actions {
+    .book-catalog-table .book-actions-wrapper {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.25rem;
       white-space: nowrap;
     }
   </style>
@@ -73,6 +77,14 @@
   <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0 book-catalog-table">
+        <colgroup>
+          <col style="width: 75px;" />
+          <col style="width: 320px;" />
+          <col style="width: 220px;" />
+          <col style="width: 220px;" />
+          <col style="width: 220px;" />
+          <col style="width: 235px;" />
+        </colgroup>
         <thead class="table-light">
           <tr>
             <th class="ps-4">Cover</th>
@@ -118,16 +130,18 @@
                   {% endif %}
                 </a>
               </td>
-              <td class="text-end pe-4 book-actions">
-                <a href="{% url 'admin_app:book_stock' book.pk %}" class="btn btn-sm btn-outline-success me-1" title="Manage physical stock & copies">
+              <td class="pe-4">
+                <div class="book-actions-wrapper">
+                <a href="{% url 'admin_app:book_stock' book.pk %}" class="btn btn-sm btn-outline-success" title="Manage physical stock & copies">
                   <i class="bi bi-boxes me-1"></i>Stock
                 </a>
-                <a href="{% url 'admin_app:book_update' book.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                <a href="{% url 'admin_app:book_update' book.pk %}" class="btn btn-sm btn-outline-primary">
                   <i class="bi bi-pencil me-1"></i>Edit
                 </a>
                 <a href="{% url 'admin_app:book_delete' book.pk %}" class="btn btn-sm btn-outline-danger">
                   <i class="bi bi-trash me-1"></i>Delete
                 </a>
+                </div>
               </td>
             </tr>
           {% empty %}
