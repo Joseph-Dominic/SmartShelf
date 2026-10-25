@@ -67,7 +67,7 @@ COPY --from=python-build-stage --chown=django:django ${APP_HOME} ${APP_HOME}
 RUN mkdir -p ${APP_HOME}/smartshelf/media
 
 # make django owner of the WORKDIR directory as well.
-RUN chown django:django ${APP_HOME}
+RUN chown -R django:django ${APP_HOME}
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
